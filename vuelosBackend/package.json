@@ -1,0 +1,48 @@
+{
+  "name": "vuelos-front",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "api.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "playwright:test": "playwright test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "langchain": "^0.3.27",
+    "next": "15.3.3",
+    "ollama": "^0.5.16",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.52.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/express": "^4.17.17",
+    "@types/node": "^22.16.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.3",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/facundogrondona02/AutomatizacionFranco.git"
+  },
+  "bugs": {
+    "url": "https://github.com/facundogrondona02/AutomatizacionFranco/issues"
+  },
+  "homepage": "https://github.com/facundogrondona02/AutomatizacionFranco#readme",
+  "description": ""
+}

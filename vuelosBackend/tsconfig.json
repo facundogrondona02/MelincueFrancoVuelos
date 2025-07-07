@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2017", // Puedes usar "ES2020" o "ESNext" si tu versión de Node.js lo soporta bien
+    "lib": ["esnext"], // Solo las librerías de tipos necesarias para Node.js
+    "allowJs": true, // Permite archivos JavaScript en tu proyecto
+    "skipLibCheck": true, // Omite la verificación de tipos de librerías de terceros (puede acelerar la compilación)
+    "strict": true, // Habilita todas las opciones estrictas de verificación de tipos
+    "noEmit": false, // ¡CRÍTICO! Permite que TypeScript emita archivos JavaScript compilados
+    "esModuleInterop": true, // Permite la interoperabilidad entre CommonJS y ES Modules
+    "module": "esnext", // O "commonjs" si tu proyecto usa principalmente CommonJS
+    "moduleResolution": "node", // Usa la estrategia de resolución de módulos de Node.js
+    "resolveJsonModule": true, // Permite importar archivos .json
+    "isolatedModules": true, // Asegura que cada archivo TS se compile de forma independiente (bueno para transpilación)
+    "outDir": "./dist", // Directorio de salida para los archivos JavaScript compilados
+    "forceConsistentCasingInFileNames": true, // Asegura que los nombres de archivo sigan un casing consistente
+    "typeRoots": ["./node_modules/@types", "./src/@types"] // Donde TypeScript buscará las definiciones de tipos
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx" // Mantén .tsx si tienes archivos con JSX en el backend, si no, puedes quitarlo
+  ],
+  "exclude": [
+    "node_modules",
+    "dist" // Excluye la carpeta de salida para evitar bucles de compilación
+  ]
+}

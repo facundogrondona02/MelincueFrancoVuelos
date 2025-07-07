@@ -1,0 +1,79 @@
+{
+  "cookies": [
+    {
+      "name": "ARRAffinity",
+      "value": "8623d856a1efeb37f7907d2ae25a68b6debbca7c3ec2eaf454f429c8bffbd329",
+      "domain": ".aereos.sudameria.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ARRAffinitySameSite",
+      "value": "8623d856a1efeb37f7907d2ae25a68b6debbca7c3ec2eaf454f429c8bffbd329",
+      "domain": ".aereos.sudameria.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.1.740497606.1751574414",
+      "domain": ".sudameria.com",
+      "path": "/",
+      "expires": 1786134414.403744,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_hjSessionUser_3632404",
+      "value": "eyJpZCI6IjdiNzM2NTliLTQ5ZjItNTdmNy05NWFkLWVmMzljMGVhMDUzNyIsImNyZWF0ZWQiOjE3NTE1NzQ0MTQ0MzMsImV4aXN0aW5nIjpmYWxzZX0=",
+      "domain": ".sudameria.com",
+      "path": "/",
+      "expires": 1783110414,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_hjSession_3632404",
+      "value": "eyJpZCI6IjY3MTkwY2EyLTUyNDQtNDk5YS05NzVlLTA0YTllMDA5Yzg5NyIsImMiOjE3NTE1NzQ0MTQ0MzQsInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjoxLCJzcCI6MH0=",
+      "domain": ".sudameria.com",
+      "path": "/",
+      "expires": 1751576214,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_ga_VZXJTFSSD2",
+      "value": "GS2.1.s1751574414$o1$g1$t1751574424$j50$l0$h0",
+      "domain": ".sudameria.com",
+      "path": "/",
+      "expires": 1786134424.039053,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://aereos.sudameria.com",
+      "localStorage": [
+        {
+          "name": "user",
+          "value": "{\"AccessToken\":\"eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNyc2Etc2hhMjU2IiwidHlwIjoiSldUIn0.eyJzdWIiOiJmcmFuY29AbWVsaW5jdWUudHVyLmFyIiwianRpIjoiYTBlNTAxYWEtN2IxMC00YTA1LTliMGItZTg1MDRmMmZmNmJkIiwiaWF0IjoxNzUxNTc0NDIzLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjpbImZyYW5jb0BtZWxpbmN1ZS50dXIuYXIiLCJmcmFuY29AbWVsaW5jdWUudHVyLmFyIl0sIkNsYWltcy5DaGFubmVsIjoiR1dDIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiZnJhbmNvQG1lbGluY3VlLnR1ci5hciIsIkNsYWltcy5Vc2VySWQiOiJhNDQwZGI1ZC0xNzE5LTRhZmEtYjJhYi1jNjBhNGZkYzllZjAiLCJDbGFpbXMuU2Vzc2lvbklkIjoiMjA0NDU2N2ItMTlmYy00YmZkLWJmNzktZDA4ZmQ0Y2RiMWIyIiwiQ2xhaW1zLkNhblN3aXRjaENvbXBhbnkiOiJGYWxzZSIsIkNsYWltcy5Vc2VyRmlyc3ROYW1lIjoiRnJhbmNvIiwiQ2xhaW1zLlVzZXJMYXN0TmFtZSI6Ii4iLCJleHAiOjE3NTE2NjA4MjMsImlzcyI6Ik5ldHZpYXguR1dDIiwiYXVkIjoiTmV0dmlheC5HV0MuQXVkaWVuY2UifQ.I30Zpno6qMkrch7ZqN31OpEtg22-ZxCsuNXmpTEL3MPupNzYipVdLzAfR3sqif-zPURypWYoY_vDiJdcAi10tVGKC6znULwgUWtLmS3eFoaK_PO8YHCn_DN4IzNpA6Z21F9D_YNsDd0iXR6lzW670_Q0bVL0tUhk_Mrnx31eTvnlqGhZlef0XO-sEvkg3vyBtDROjnEWtBHEX6Gx8LXhZXooQicc4JhAN-fcLZqa5SZ5FmS-6cvH1IOlzABv4CzXqpQwHWMRhMmWn5tgXB-zyZF0EoDe0ra6lhpQiuqi5w8Lb1z6F7UXEH5TULdOZZsPqoUkf254rOKZBYZl8JtjOg\",\"ExpiresInSeconds\":28800,\"IsUserSuccessfullyLogedIn\":true,\"CanSwitchCompany\":false,\"CanOperateOnBehalfOf\":false,\"UserId\":\"a440db5d-1719-4afa-b2ab-c60a4fdc9ef0\",\"SessionId\":\"2044567b-19fc-4bfd-bf79-d08fd4cdb1b2\",\"TimeStamp\":\"2025-07-03T17:27:02.425-03:00\",\"Name\":\"franco@melincue.tur.ar\",\"Email\":\"franco@melincue.tur.ar\"}"
+        },
+        {
+          "name": "Session.User.AuthenticationInformation.SelectedCompany",
+          "value": "{\"IsDefaultCompany\":false,\"CompnayAllowOnBehalfOfAnotherUserFlow\":false,\"CompanyAssociationId\":7951,\"CompanyAssociationAndApplicationId\":10274,\"CompanyAssociationName\":\"Step One Group-Sudameria\",\"UserRoles\":[\"SearchRole_AgencyViewer\",\"SearchRole_User\",\"SearchRole_Shopper\",\"SearchRole_ReservationImporter\",\"SearchRole_PostSalesManager\",\"SearchRole_AncillariesShopper\"],\"RetailerName\":\"Step One Group\",\"RetailerId\":1767,\"WholesalerName\":\"Sudameria\",\"WholesalerId\":667,\"WholesalerCountryCode\":\"AR\",\"SecurityActions\":[{\"Id\":100,\"Order\":1,\"Functionalities\":[{\"Id\":100001,\"Order\":1,\"AreaId\":100,\"Actions\":[{\"Id\":100001001,\"IsDefaultAction\":true,\"FunctionalityId\":100001,\"ActionRequiredId\":null,\"ActionType\":5},{\"Id\":100001002,\"IsDefaultAction\":false,\"FunctionalityId\":100001,\"ActionRequiredId\":100001001,\"ActionType\":5},{\"Id\":100001005,\"IsDefaultAction\":false,\"FunctionalityId\":100001,\"ActionRequiredId\":null,\"ActionType\":5},{\"Id\":100001008,\"IsDefaultAction\":false,\"FunctionalityId\":100001,\"ActionRequiredId\":null,\"ActionType\":5}],\"FunctionalityGroup\":null},{\"Id\":100002,\"Order\":2,\"AreaId\":100,\"Actions\":[{\"Id\":100002003,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002001,\"ActionType\":5},{\"Id\":100002001,\"IsDefaultAction\":true,\"FunctionalityId\":100002,\"ActionRequiredId\":null,\"ActionType\":0},{\"Id\":100002002,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002001,\"ActionType\":4},{\"Id\":100002008,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002002,\"ActionType\":5},{\"Id\":100002009,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002002,\"ActionType\":5},{\"Id\":100002013,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002002,\"ActionType\":5},{\"Id\":100002012,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002002,\"ActionType\":5},{\"Id\":100002010,\"IsDefaultAction\":false,\"FunctionalityId\":100002,\"ActionRequiredId\":100002002,\"ActionType\":5}],\"FunctionalityGroup\":null}]}],\"CheckoutConfiguration\":{\"GetAccountingInformation\":true,\"RequiredAccountingInformation\":true},\"ShoppingFlowConfiguration\":{\"SearchConfiguration\":{\"AllowedAlternateCurrencyCodes\":[\"USD\"],\"MaximumDaysInAdvance\":1,\"CorporationCodeGLAS\":[]}},\"WholesalerBackOfficeInformation\":{\"BackOfficeTicketingFlow\":\"AUTOMATICO_NO\",\"WholesalerBackOfficeInformationItems\":{\"BackOfficeClientId\":\"5927\",\"BackOfficeSaleChannel\":\"\",\"BackOfficeSalesPersonCode\":\"MK\",\"CLIENT\":\"\",\"BackOfficeTicketingFlow\":\"AUTOMATICO_NO\"}}}"
+        }
+      ]
+    }
+  ]
+}
