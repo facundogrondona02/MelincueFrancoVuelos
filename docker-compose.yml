@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3030:3030"
-    volumes:
-      - ./vuelosBackend/anti-script:/app/anti-script
     environment:
       NODE_ENV: development
       IA_API_BASE_URL: http://ia-api:3020/api

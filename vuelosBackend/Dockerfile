@@ -1,20 +1,23 @@
 FROM mcr.microsoft.com/playwright:v1.52.0-jammy
 
+# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app/anti-script
 
+# Copia los archivos de dependencias
 COPY anti-script/package.json anti-script/package-lock.json ./
 RUN npm install
 
+# Instala los navegadores de Playwright
 RUN npx playwright install --with-deps
 
+# Copia el resto del código fuente
 COPY anti-script/ .
 
-COPY anti-script/start.sh ./start.sh
-RUN chmod +x ./start.sh
+# Compila TypeScript (si tu proyecto lo requiere)
+RUN npx tsc
 
-RUN chmod +x ./node_modules/.bin/tsc
-RUN npm run build
-
+# Expone el puerto en el que corre tu backend
 EXPOSE 3030
 
-CMD ["./start.sh"]
+# Comando para iniciar la app
+CMD ["npm", "start"]
