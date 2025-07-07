@@ -1,10 +1,6 @@
-# docker-compose.yml
-# Ubica este archivo en la raíz de tu proyecto (junto a vuelosFrontend, vuelosBackend, vuelosIA)
-
-# version: '3.8' # Opcional
+version: '3.8'
 
 services:
-  # Servicio de Backend (vuelosBackend)
   backend:
     build:
       context: ./vuelosBackend
@@ -19,20 +15,19 @@ services:
     depends_on:
       - ia-api
 
-  # Servicio de Frontend (vuelosFrontend)
   frontend:
     build:
       context: ./vuelosFrontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_IA_API_URL: http://34.123.45.67:3020
-        NEXT_PUBLIC_BACKEND_API_URL: http://34.123.45.67:3030
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
+      NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
+      NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030
     depends_on:
       - ia-api
+      - backend
 
   ia-api:
     build:
@@ -42,7 +37,7 @@ services:
       - "3020:3020"
     volumes:
       - ./vuelosIA/api-js:/app/vuelosIA/api-js
-      - /app/vuelosIA/api-js/node_modules
+      - vuelosia_node_modules:/app/vuelosIA/api-js/node_modules
     environment:
       NODE_ENV: development
       BACKEND_API_URL: http://backend:3030
@@ -61,3 +56,4 @@ services:
 
 volumes:
   ollama_data:
+  vuelosia_node_modules:
