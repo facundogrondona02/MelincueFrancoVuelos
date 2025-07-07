@@ -13,7 +13,7 @@ export default function Home() {
   const fetching = (data: Mensaje) => {
     setLoading(true);
     console.log("Enviando mensaje al backend para scraping:");
-    fetch(`${process.env.NEXT_PUBLIC_IA_API_URL}/mensaje`, {
+    fetch(`http://ia-api:3020/mensaje`, {
       method: "POST",
       body: JSON.stringify({ data }),
       headers: {
