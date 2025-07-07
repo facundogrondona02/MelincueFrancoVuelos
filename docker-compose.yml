@@ -12,6 +12,8 @@ services:
       IA_API_BASE_URL: http://ia-api:3020/api
     depends_on:
       - ia-api
+    networks:
+      - melincue-network
 
   frontend:
     build:
@@ -21,11 +23,14 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_IA_API_URL: http://34.44.104.97:3020
-      NEXT_PUBLIC_BACKEND_API_URL: http://34.44.104.97:3030
+      # Usamos nombres de servicio internos en la red de Docker
+      NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
+      NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030
     depends_on:
       - ia-api
       - backend
+    networks:
+      - melincue-network
 
   ia-api:
     build:
@@ -39,6 +44,10 @@ services:
     environment:
       NODE_ENV: development
       BACKEND_API_URL: http://backend:3030
+    networks:
+      - melincue-network
+    depends_on:
+      - ollama  
 
   ollama:
     image: ollama/ollama
@@ -51,7 +60,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - melincue-network
 
 volumes:
   ollama_data:
   vuelosia_node_modules:
+
+networks:
+  melincue-network:
+    driver: bridge
