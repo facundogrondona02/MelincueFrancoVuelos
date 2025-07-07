@@ -184,11 +184,13 @@ const haciendoScraping = async (objetoViaje: ObjetoViaje[]) => {
     });
 
     const scrapingResults = await Promise.all(scrapingPromises);
+    console.log("RESUULTADOOSOOSOSOS ", scrapingResults)
     respuestas.push(...scrapingResults.filter((r) => r !== undefined));
     console.log("✅ Resultados de scraping:", respuestas);
 
     return respuestas;
   } finally {
+    
     if (browser) {
       console.log("🧹 Cerrando navegador...");
       await browser.close();
