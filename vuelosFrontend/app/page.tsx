@@ -12,8 +12,8 @@ export default function Home() {
   // Función para enviar datos al backend para scraping
   const fetching = (data: Mensaje) => {
     setLoading(true);
-    console.log("Enviando mensaje al backend para scraping:");
-    fetch(`${process.env.NEXT_PUBLIC_IA_API_URL}/mensaje`, {
+    console.log("Enviando mensaje al backend para scraping:", data);
+    fetch(`http://34.44.104.97:3020/mensaje/mensaje`, {
       method: "POST",
       body: JSON.stringify({ data }),
       headers: {
