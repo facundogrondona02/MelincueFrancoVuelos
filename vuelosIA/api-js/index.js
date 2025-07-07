@@ -26,7 +26,7 @@ app.use(json());
 // POST /mensaje
 app.post('/mensaje', async (req, res) => {
   console.log('Mensaje recibido:', req.body);
-  const mensajeCliente = req.body.data.mensaje
+  const mensajeCliente = req.body.mensaje
 
   const objetoViaje = [];
 
