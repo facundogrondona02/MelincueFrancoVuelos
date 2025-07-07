@@ -209,11 +209,16 @@ Mensaje del cliente:
     """
 
     print(">> Enviando a Ollama...")
-    response = client.chat(
-      model="llama3.2",
-      messages=[{"role": "user", "content": prompt}],
-      options={"temperature": 0}
+    try:
+        response = client.chat(
+        model="llama3.2",
+        messages=[{"role": "user", "content": prompt}],
+        options={"temperature": 0}
     )
+    except Exception as e:
+        print(f"Error en llamada a Ollama: {e}")
+    return {}
+
     print(">> Respuesta recibida de Ollama")
     respuesta_texto = response["message"]["content"].strip()
 

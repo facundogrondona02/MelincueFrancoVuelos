@@ -8,7 +8,7 @@ import traceback # Importar traceback para imprimir la pila de llamadas
 # Configurar la salida estándar para UTF-8
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-client = ollama.Client(host='http://127.0.0.1:46643')
+client = ollama.Client(host='http://ollama:11434')
 
 def generar_texto_pasajeros(adults, children, infants):
     partes = []
