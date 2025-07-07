@@ -29,7 +29,7 @@ export function MostrarDestinos({ crearDestino }: MostrarDestinosProps) {
     setLoading(true); // Se debe establecer a true cada vez que se inicia un fetch
     setError(null); // Limpiar errores anteriores
     try {
-      const res = await fetch(`http://backend:3030/destinos`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/destinos`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

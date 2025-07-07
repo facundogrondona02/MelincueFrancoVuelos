@@ -13,7 +13,7 @@ export default function Home() {
   const fetching = (data: Mensaje) => {
     setLoading(true);
     console.log("Enviando mensaje al backend para scraping:");
-    fetch(`http://ia-api:3020/mensaje`, {
+    fetch(`${process.env.NEXT_PUBLIC_IA_API_URL}/mensaje`, {
       method: "POST",
       body: JSON.stringify({ data }),
       headers: {
@@ -48,7 +48,7 @@ export default function Home() {
   // Función para guardar un nuevo destino (llamando al backend)
   async function guardarDestino(data: FormData) {
     console.log("Intentando guardar destino desde el Home:", data);
-    await fetch(`http://backend:3030/crearDestino`, { 
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/crearDestino`, { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
