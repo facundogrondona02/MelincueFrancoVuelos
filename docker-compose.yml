@@ -1,0 +1,74 @@
+# docker-compose.yml
+# Ubica este archivo en la raíz de tu proyecto (junto a vuelosFrontend, vuelosBackend, vuelosIA)
+
+# version: '3.8' # La advertencia sobre 'version' es normal, puedes ignorarla o eliminar la línea.
+
+services:
+  # Servicio de Backend (vuelosBackend)
+  backend: # Nombre del servicio: 'backend'
+    build:
+      context: ./vuelosBackend # Ruta al Dockerfile del backend
+      dockerfile: Dockerfile
+    ports:
+      - "3030:3030" # Mapea el puerto 3030 de tu máquina al 3030 del contenedor
+    # Los volúmenes son CRÍTICOS para que Node.js encuentre sus módulos.
+    # Montamos la carpeta 'anti-script' del host al WORKDIR del contenedor (/app/anti-script).
+    # Y luego, creamos un volumen anónimo para 'node_modules' DENTRO del contenedor.
+    # Esto asegura que los 'node_modules' instalados por 'npm install' en el Dockerfile
+    # no sean sobrescritos por los del host, permitiendo que Playwright se encuentre.
+    volumes:
+      - ./vuelosBackend/anti-script:/app/anti-script # Monta el código fuente de anti-script
+      - /app/anti-script/node_modules # Volumen anónimo para node_modules del contenedor
+    environment:
+      NODE_ENV: development
+      # URL interna para comunicarse con la API de IA desde el backend
+      # 'ia-api' es el nombre del servicio de Docker Compose
+      IA_API_BASE_URL: http://ia-api:3020/api # El backend llama a la IA API
+    depends_on:
+      - ia-api # Asegura que la API de IA se inicie antes que el backend
+
+  # Servicio de Frontend (vuelosFrontend)
+  frontend:
+    build:
+      context: ./vuelosFrontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
+        NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030 # si lo necesitás más adelante
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./vuelosFrontend:/app/vuelosFrontend
+      - /app/vuelosFrontend/node_modules
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
+    depends_on:
+      - ia-api
+
+  ia-api:
+    build:
+      context: ./vuelosIA/api-js
+      dockerfile: Dockerfile
+    ports:
+      - "3020:3020"
+    volumes:
+      - ./vuelosIA/api-js:/app/vuelosIA/api-js
+      - /app/vuelosIA/api-js/node_modules
+    environment:
+      NODE_ENV: development
+      # La IA API necesita saber cómo llamar al backend para el scraping
+      BACKEND_API_URL: http://backend:3030 # La IA API llama al backend
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  ollama_data:

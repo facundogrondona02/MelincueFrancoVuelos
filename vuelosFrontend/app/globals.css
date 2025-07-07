@@ -1,0 +1,375 @@
+/* app/globals.css - ESTILOS REINICIADOS */
+
+/* Estilos base para todo el documento */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Arial', sans-serif; /* Cambiado a Arial para asegurar que no haya problemas de fuentes */
+  background-color: #e0e5ec; /* Un gris muy claro y suave */
+  color: #2c3e50;
+  line-height: 1.5;
+}
+
+/* Contenedor principal de la página */
+.app-main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem; /* Reducido un poco el padding general */
+  box-sizing: border-box;
+  background-color: #f8f9fa; /* Fondo ligeramente más claro para el contenido principal */
+}
+
+/* Título principal */
+.app-main-title {
+  font-size: 2.2rem;
+  font-weight: 800; /* Más negrita */
+  color: #34495e;
+  margin-bottom: 1.8rem;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Contenedores tipo tarjeta */
+.app-card-box {
+  background-color: white;
+  border-radius: 0.6rem; /* Bordes redondeados */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Sombra más suave y definida */
+  padding: 1.8rem; /* Padding ajustado */
+  margin-bottom: 1.8rem;
+  width: 100%;
+  max-width: 45rem; /* Ancho máximo ligeramente reducido */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Títulos dentro de las tarjetas */
+.app-card-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #4a69bd; /* Un azul más profundo */
+  margin-bottom: 1.2rem;
+  text-align: center;
+  width: 100%;
+}
+
+/* Grupo de botones principales */
+.app-button-group-main {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.8rem; /* Espacio entre botones */
+  margin-bottom: 1.2rem;
+  width: 100%;
+}
+
+/* Botones base */
+.app-btn-base {
+  font-weight: 600;
+  padding: 0.6rem 1.4rem; /* Padding más compacto */
+  border-radius: 0.4rem;
+  color: white;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-block;
+  text-align: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Botón Primario */
+.app-btn-primary {
+  composes: app-btn-base;
+  background-color: #007bff; /* Azul vibrante */
+}
+.app-btn-primary:hover:not([disabled]) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+.app-btn-primary[disabled] {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Botón Secundario */
+.app-btn-secondary {
+  composes: app-btn-base;
+  background-color: #6c757d; /* Gris */
+}
+.app-btn-secondary:hover:not([disabled]) {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+/* Botón Peligro */
+.app-btn-danger {
+  composes: app-btn-base;
+  background-color: #dc3545; /* Rojo */
+}
+.app-btn-danger:hover:not([disabled]) {
+  background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+/* Mensaje de carga */
+.app-text-loading {
+  text-align: center;
+  margin-top: 1.2rem;
+  font-size: 1rem;
+  color: #555;
+  font-style: italic;
+  width: 100%;
+}
+
+/* Mensaje de error */
+.app-text-error {
+  text-align: center;
+  margin-top: 1.2rem;
+  font-size: 1rem;
+  color: #e74c3c;
+  font-weight: 600;
+  width: 100%;
+}
+
+/* Contenedor flexible para resultados */
+.app-result-flex-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* Texto preformateado (código/resultados) */
+.app-result-code {
+  white-space: pre-wrap;
+  background-color: #f0f4f7; /* Fondo muy claro */
+  padding: 0.8rem;
+  border-radius: 0.4rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #34495e;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d0d8e0;
+}
+
+/* Estilos para formularios */
+.app-form-layout {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem; /* Espacio entre grupos de formulario */
+  margin-top: 1.2rem;
+}
+
+.app-form-group {
+  margin-bottom: 0;
+}
+
+.app-form-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: #34495e;
+  font-size: 0.95rem;
+}
+
+.app-form-input, .app-form-textarea {
+  width: 100%;
+  padding: 0.6rem 0.8rem; /* Padding ajustado para inputs */
+  border: 1px solid #aeb6bf; /* Borde más suave */
+  border-radius: 0.3rem;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-form-input::placeholder, .app-form-textarea::placeholder {
+  font-family: 'Verdana', sans-serif; /* Fuente de placeholder diferente */
+  font-style: italic;
+  color: #8c96a0;
+  opacity: 1;
+}
+
+.app-form-input:focus, .app-form-textarea:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+.app-form-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+/* Contenedor para múltiples checkboxes */
+.app-checkboxes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0.8rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.app-checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.app-checkbox-input {
+  margin-right: 0.4rem;
+  transform: scale(1.1);
+}
+
+.app-checkbox-label {
+  color: #34495e;
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+/* Botón de envío de formulario */
+.app-form-submit-btn {
+  composes: app-btn-primary; /* Hereda estilos del botón primario */
+  width: 100%;
+  margin-top: 1.2rem;
+}
+
+/* Estilos para la tabla de destinos */
+.table-data-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  background-color: white;
+  border: 1px solid #dbe3eb;
+  margin-top: 1.5rem;
+}
+
+.table-main {
+  width: 100%;
+  border-collapse: collapse; /* Elimina espacio entre celdas */
+  table-layout: auto;
+}
+
+.table-main th, .table-main td {
+  padding: 0.2rem 0.8rem; /* <-- ¡PADDING MUY REDUCIDO AQUÍ! */
+  border-bottom: 1px solid #ebf0f5; /* Borde suave */
+  text-align: left;
+  font-size: 0.85rem; /* Tamaño de fuente ligeramente más pequeño */
+  color: #4a5568;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Colores de depuración para ver si se aplican */
+  background-color: #ffffe0; /* Amarillo claro */
+  border: 1px solid red; /* Borde rojo */
+}
+
+.table-main th {
+  background-color: #e9ecef; /* Gris claro para encabezado */
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: #6c757d;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 2px solid #ced4da;
+  background-color: #add8e6; /* Azul claro para encabezado */
+  border: 1px solid blue; /* Borde azul */
+}
+
+.table-main tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-main tbody tr:hover {
+  background-color: #e6f7ff; /* Azul muy claro al pasar el ratón */
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.table-main tbody tr.table-row-selected {
+  background-color: #cceeff; /* Azul un poco más oscuro para fila seleccionada */
+  font-weight: 600;
+  color: #0056b3;
+}
+
+/* Grupo de botones de acción de la tabla */
+.table-actions-group {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  margin-bottom: 0.8rem;
+  justify-content: flex-start;
+  width: 100%;
+  padding-left: 0.5rem;
+}
+
+/* Media Queries para responsividad */
+@media (max-width: 768px) {
+  .app-main-title {
+    font-size: 1.8rem;
+  }
+  .app-card-box {
+    padding: 1.2rem;
+    max-width: 98%;
+  }
+  .app-card-title {
+    font-size: 1.4rem;
+  }
+  .app-btn-base {
+    width: 100%;
+    margin: 0.4rem 0;
+  }
+  .app-button-group-main {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .app-checkboxes-container {
+    flex-direction: column;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .table-data-wrapper {
+    margin-top: 0.8rem;
+  }
+  .table-main th, .table-main td {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  .table-actions-group {
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main-title {
+    font-size: 1.5rem;
+  }
+  .app-btn-base {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+  .app-card-box {
+    padding: 0.8rem;
+  }
+  .table-main th, .table-main td {
+    font-size: 0.7rem;
+  }
+}
