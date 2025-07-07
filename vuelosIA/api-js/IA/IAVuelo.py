@@ -208,11 +208,13 @@ Mensaje del cliente:
 
     """
 
+    print(">> Enviando a Ollama...")
     response = client.chat(
-        model="llama3.2",
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0}
+      model="llama3.2",
+      messages=[{"role": "user", "content": prompt}],
+      options={"temperature": 0}
     )
+    print(">> Respuesta recibida de Ollama")
     respuesta_texto = response["message"]["content"].strip()
 
     json_match = re.search(r"\{.*\}", respuesta_texto, re.DOTALL)
