@@ -13,7 +13,10 @@ RUN npx playwright install --with-deps
 # Copia el resto del código fuente
 COPY anti-script/ .
 
-# Compila TypeScript (si tu proyecto lo requiere)
+# Da permiso de ejecución al compilador TypeScript
+RUN chmod +x ./node_modules/.bin/tsc
+
+# Compila TypeScript
 RUN npx tsc
 
 # Expone el puerto en el que corre tu backend
