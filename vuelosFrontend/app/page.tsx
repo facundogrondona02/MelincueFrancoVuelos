@@ -48,7 +48,7 @@ export default function Home() {
   // Función para guardar un nuevo destino (llamando al backend)
   async function guardarDestino(data: FormData) {
     console.log("Intentando guardar destino desde el Home:", data);
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/crearDestino`, { 
+    await fetch(`http://backend:3030/crearDestino`, { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

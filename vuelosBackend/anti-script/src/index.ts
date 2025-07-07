@@ -173,7 +173,6 @@ const haciendoScraping = async (objetoViaje: ObjetoViaje[]) => {
 
 
 
-
     const scrapingPromises = objetoViaje.map((vueloOriginal) => {
       const vuelo: any = {
         ...vueloOriginal,
@@ -197,23 +196,23 @@ const haciendoScraping = async (objetoViaje: ObjetoViaje[]) => {
   }
 };
 
-const fetching = async (data: any) => {
-  await fetch('http://localhost:3020/mensajeFormateado', {
-    method: "POST",
-    body: JSON.stringify({ data }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Respuesta del servidor:", data);
-    })
-    .catch((error) => {
-      console.error("Error al enviar el formulario:", error);
-    });
+// const fetching = async (data: any) => {
+//   await fetch('http://localhost:3020/mensajeFormateado', {
+//     method: "POST",
+//     body: JSON.stringify({ data }),
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   })
+//     .then((res) => res.json())
+//     .then((data) => {
+//       console.log("Respuesta del servidor:", data);
+//     })
+//     .catch((error) => {
+//       console.error("Error al enviar el formulario:", error);
+//     });
 
-}
+// }
 
 const llamandoDestinos = async () => {
   try {
