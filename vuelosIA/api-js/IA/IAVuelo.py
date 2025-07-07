@@ -312,6 +312,7 @@ def cargar_destinos():
     ruta_archivo = os.path.join(os.path.dirname(__file__), '..', 'data', 'destinos.json')
     with open(ruta_archivo, 'r') as f:
         destinos = json.load(f)
+    print("🔍 Destinos cargados:", destinos)
     # Devolvemos un diccionario con clave origenVuelta para buscar fácil después
     return { destino["origenVuelta"]: destino for destino in destinos }
 
@@ -319,8 +320,10 @@ def cargar_destinos():
 def completar_objetos_finales(vuelo):
     # Tabla de datos por ciudad
     tabla_destinos = cargar_destinos()
+    if origen not in tabla_destinos:
+       print(f"⚠️  Advertencia: origen {origen} no encontrado en destinos.json, se usan valores por defecto.")
     origen = vuelo.get("origenVuelta", "")
-    datos_destino = tabla_destinos.get(origen, {...})
+    datos_destino = tabla_destinos.get(origen, {})
 
     vuelo_completo = {
         "mail": "franco@melincue.tur.ar",
