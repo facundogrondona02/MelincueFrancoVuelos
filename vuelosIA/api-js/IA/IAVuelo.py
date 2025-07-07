@@ -320,9 +320,9 @@ def cargar_destinos():
 def completar_objetos_finales(vuelo):
     # Tabla de datos por ciudad
     tabla_destinos = cargar_destinos()
+    origen = vuelo.get("origenVuelta", "")
     if origen not in tabla_destinos:
        print(f"⚠️  Advertencia: origen {origen} no encontrado en destinos.json, se usan valores por defecto.")
-    origen = vuelo.get("origenVuelta", "")
     datos_destino = tabla_destinos.get(origen, {})
 
     vuelo_completo = {
