@@ -30,6 +30,7 @@ COPY anti-script/ .
 
 # Si tu backend es un proyecto TypeScript, necesitas compilarlo dentro del contenedor.
 # Esto asume que tienes un script 'build' en tu package.json que compila TypeScript a JavaScript en la carpeta 'dist'.
+RUN chmod +x ./node_modules/.bin/tsc
 RUN npm run build
 
 # Expone el puerto en el que la aplicación Express escucha.
