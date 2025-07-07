@@ -33,8 +33,10 @@ app.post('/mensaje', async (req, res) => {
   console.log("Mensaje del cliente:", mensajeCliente);
 
   if (req.body.multibusqueda == false) {
+    console.log("ENTRE AL IF")
     objetoViaje.push(await generarJsonDesdeMensaje(mensajeCliente));
   } else {
+    console.log("ENTRE AL ELSE")
     const array = await generarArrayMultibusqueda(mensajeCliente);
     if (Array.isArray(array)) {
       objetoViaje.push(...array);
