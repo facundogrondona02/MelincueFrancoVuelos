@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y build-essential python3 && rm -rf /var/
 
 COPY package.json package-lock.json ./
 
-RUN npm cache clean --force && npm install --omit=dev --force --legacy-peer-deps && npm rebuild
+RUN npm cache clean --force && npm install --legacy-peer-deps
 
 COPY . .
 
