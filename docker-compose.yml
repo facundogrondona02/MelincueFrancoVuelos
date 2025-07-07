@@ -26,8 +26,8 @@ services:
       context: ./vuelosFrontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
-        NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030
+        NEXT_PUBLIC_IA_API_URL: http://34.123.45.67:3020
+        NEXT_PUBLIC_BACKEND_API_URL: http://34.123.45.67:3030
     ports:
       - "3000:3000"
     environment:
