@@ -28,23 +28,20 @@ services:
       - ia-api # Asegura que la API de IA se inicie antes que el backend
 
   # Servicio de Frontend (vuelosFrontend)
-  frontend:
-    build:
-      context: ./vuelosFrontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
-        NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030 # si lo necesitás más adelante
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./vuelosFrontend:/app/vuelosFrontend
-      - /app/vuelosFrontend/node_modules
-    environment:
-      NODE_ENV: development
+frontend:
+  build:
+    context: ./vuelosFrontend
+    dockerfile: Dockerfile
+    args:
       NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
-    depends_on:
-      - ia-api
+      NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030
+  ports:
+    - "3000:3000"
+  environment:
+    NODE_ENV: production
+  depends_on:
+    - ia-api
+
 
   ia-api:
     build:
