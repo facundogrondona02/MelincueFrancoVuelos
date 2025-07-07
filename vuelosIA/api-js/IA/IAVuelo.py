@@ -319,6 +319,7 @@ def cargar_destinos():
 
 def completar_objetos_finales(vuelo):
     # Tabla de datos por ciudad
+    print("🛬 Vuelo recibido para completar:", vuelo)
     tabla_destinos = cargar_destinos()
     print(f"la tabla de desitnos {tabla_destinos}")
     origen = vuelo.get("origenVuelta", "")
