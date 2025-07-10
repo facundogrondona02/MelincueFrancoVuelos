@@ -70,7 +70,6 @@ export async function scrapingVuelos(params: ScrapingVuelosParams & { context: B
     await page.goto("https://aereos.sudameria.com/search", { waitUntil: "networkidle" });
     // Espera adicional para que los elementos iniciales de la página de búsqueda estén presentes
     // === ORIGEN Y DESTINO ===
-    await page.waitForSelector('input[placeholder]', { state: 'visible', timeout: 15000 });
     await page.waitForTimeout(15000)
     await page.waitForLoadState('domcontentloaded'); // Asegura que el DOM está listo
     await page.waitForTimeout(1000); // Pequeña pau
