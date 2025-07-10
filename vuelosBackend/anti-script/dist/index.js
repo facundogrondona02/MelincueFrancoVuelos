@@ -50,7 +50,7 @@ app.get('/destinos', async (req, res) => {
 // PUT / MODIFICAR DESTINOS
 app.put('/modificarDestinos', async (req, res) => {
     const nuevoDestino = req.body;
-    console.log("desde la api (modificar)", nuevoDestino);
+    console.log("desde la backend (modificar)", nuevoDestino);
     try {
         const response = await fetch(`${IA_API_BASE_URL}/destinos/${nuevoDestino.ciudad}`, {
             method: "PUT",
