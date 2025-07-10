@@ -240,6 +240,7 @@ const generandoRespuesta = async (data) => {
 
 const fetching = async (data, expressRes) => { // Renombrado 'res' a 'expressRes'
   console.log("ANTES DE IR AL BACK")
+  console.log("DATA PREVIA ", data)
   await fetch("http://backend:3030/evento", {
     method: "POST",
     body: JSON.stringify({ data }),
