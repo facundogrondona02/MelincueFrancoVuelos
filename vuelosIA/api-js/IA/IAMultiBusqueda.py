@@ -6,9 +6,9 @@ from rapidfuzz import process, fuzz
 from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
 import json
-
-client = OpenAI(api_key="***REMOVED***proj-PThVCd8Ml12wExHlDe97CK8m_o4ERbB2aJC3cZ3s9PTy5t4GP73J6PzSEUUFTaxKN3VwLl0xJzT3BlbkFJjtMXz2urO2bN7v1cPfbRiOQdz2hHlPsMegHZFtmnKruItGROdIGp7bjK0xGkz7mM1tp4kybpMA")
-
+import os
+key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=key)
 
 
 def generar_ambas_llamadas(mensaje):
