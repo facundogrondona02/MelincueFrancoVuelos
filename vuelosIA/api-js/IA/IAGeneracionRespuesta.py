@@ -1,14 +1,17 @@
 import sys
 import io
 import json
-import ollama
 from collections import defaultdict # Para agrupar vuelos
 import traceback # Importar traceback para imprimir la pila de llamadas
+from openai import OpenAI
+import os
+
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key="***REMOVED***proj-PThVCd8Ml12wExHlDe97CK8m_o4ERbB2aJC3cZ3s9PTy5t4GP73J6PzSEUUFTaxKN3VwLl0xJzT3BlbkFJjtMXz2urO2bN7v1cPfbRiOQdz2hHlPsMegHZFtmnKruItGROdIGp7bjK0xGkz7mM1tp4kybpMA")
+
 
 # Configurar la salida estándar para UTF-8
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
-client = ollama.Client(host='http://ollama:11434')
 
 def generar_texto_pasajeros(adults, children, infants):
     partes = []
@@ -321,82 +324,66 @@ Escribe una única respuesta como si fueras un asesor humano que ya analizó tod
 """ 
         else: # Esto se ejecuta cuando hay más de 5 opciones representativas
             prompt = f"""
-Eres un asistente de viajes experto y conciso, especializado en encontrar y recomendar las mejores opciones de vuelos para enviar a clientes por WhatsApp.
+Sos un asistente de viajes experto y conciso, especializado en encontrar y recomendar las mejores opciones de vuelos para enviar a clientes por WhatsApp. Recibirás una lista de vuelos en formato JSON y tu tarea es analizarla y responder con exactamente 5 opciones de vuelo, en un formato muy específico, listo para copiar y pegar en WhatsApp.
 
-Recibirás una lista de vuelos disponibles en formato JSON. Cada objeto de vuelo tiene las siguientes propiedades:
+1. Análisis y priorización interna
+Convertí el campo `precioFinal` a número (reemplazá la coma por punto, ej: '651,30' → 651.30).
 
-- `precioFinal`: String, ej. '651,30' (formato europeo con coma decimal).
-- `aerolinea`: String.
-- `aeropuertoIda`, `horarioSalidaIda`, `ciudadOrigenIda`, `horarioSupongoDuracionIda`, `escalasIda`, `horarioLlegadaIda`, `aeropuertoDestinoIda`, `ciudadDestinoIda`, `fechaSalidaIda`, `fechaLlegadaIda`: Propiedades para el tramo de ida.
-- `aeropuertoVuelta`, `horarioSalidaVuelta`, `ciudadOrigenVuelta`, `horarioSupongoDuracionVuelta`, `escalasVuelta`, `horarioLlegadaVuelta`, `aeropuertoDestinoVuelta`, `ciudadDestinoVuelta`, `fechaSalidaVuelta`, `fechaLlegadaVuelta`: Propiedades para el tramo de vuelta.
-- **NUEVOS CAMPOS (opcionales para escala):** `fechaLlegadaIdaEscala`, `fechaSalidaIdaEscala`, `horarioLlegadaIdaEscala`, `horarioSalidaIdaEscala`, `fechaLlegadaVueltaEscala`, `fechaSalidaVueltaEscala`, `horarioLlegadaVueltaEscala`, `horarioSalidaVueltaEscala`. Estos campos solo estarán presentes y con datos si el vuelo tiene escala y se dispone de esa información.
+Calculá la duración total del vuelo sumando la duración de ida y vuelta (convertí strings como "07h 30m" a minutos).
 
-Tu tarea es:
+Contá la cantidad total de escalas (ida + vuelta). "Non Stop" equivale a 0 escalas.
 
-1.  **Transformar y Calcular Métricas (Internamente):**
-    * **Precio:** Convierte `precioFinal` a un número para comparación (reemplaza la coma por punto y parsea a float).
-    * **Duración Total:** Suma la duración de ida (`horarioSupongoDuracionIda`) y vuelta (`horarioSupongoDuracionVuelta`). Para esto, convierte las cadenas "Xh Ym" a minutos (ej., "07h 30m" son 450 minutos). "Non Stop" en escalas no afecta la duración calculada.
-    * **Escalas Totales:** Calcula el número total de escalas para todo el vuelo (ida + vuelta). Considera "Non Stop" como 0 escalas.
+2. Selección de las 5 mejores opciones
+Seleccioná las 5 mejores opciones de vuelo según este orden de prioridad:
 
-2.  **Seleccionar las 5 mejores opciones:**
-    * Prioriza estrictamente los vuelos utilizando las métricas calculadas, de la siguiente manera:
-        1.  **Precio** (el valor numérico más bajo primero).
-        2.  Si los precios son idénticos, por **menor Duración Total** (el valor en minutos más bajo primero).
-        3.  Si la duración total también es idéntica, por **menos Escalas Totales** (el número más bajo primero).
-    * Selecciona solo las 5 principales opciones después de aplicar esta priorización. Si al final de la priorización hay empates perfectos que superan las 5 opciones (ej., 3 vuelos idénticos en todo que son los mejores, y 3 vuelos idénticos en todo que son los segundos mejores), selecciona arbitrariamente para mantener el límite de 5 bloques finales.
+1. Menor **precioFinal**
+2. Menor **duración total**
+3. Menor **cantidad total de escalas**
 
-3.  **Agrupar opciones idénticas por fecha dentro de las 5 mejores seleccionadas:**
-    * Una vez que hayas identificado las 5 mejores opciones (o menos, si hay agrupaciones), evalúa si alguna de ellas tiene **características idénticas en *todos* los campos, EXCEPTO** por `fechaSalidaIda`, `fechaLlegadaIda`, `fechaSalidaVuelta`, `fechaLlegadaVuelta`, `fechaLlegadaIdaEscala`, `fechaSalidaIdaEscala`, `fechaLlegadaVueltaEscala`, y `fechaSalidaVueltaEscala`. Esto significa que `precioFinal`, `aerolinea`, todos los `horarioSalida`, `horarioSupongoDuracion`, `horarioLlegada`, `aeropuerto`, `ciudadOrigen`, `ciudadDestino`, y las `escalas` (incluyendo los países entre paréntesis si aplican, y los nuevos campos de horario de escala `horarioLlegadaIdaEscala`, `horarioSalidaIdaEscala`, `horarioLlegadaVueltaEscala`, `horarioSalidaVueltaEscala` deben ser idénticos para considerar una agrupación.
-    * Si encuentras vuelos con estas características idénticas pero distintas `fechaSalidaIda`, agrupa esas fechas bajo una única descripción de vuelo.
-    * Muestra la información del vuelo principal una sola vez utilizando el formato especificado en el paso 4.
-    * Si hay fechas agrupadas para esa opción, **después de la línea `💰 Precio final: {{precioFinal}}`**, añade una nueva línea que diga: "Fechas disponibles: {{lista_de_fechas_salida_ida_agrupadas}}", donde `lista_de_fechas_salida_ida_agrupadas` es una lista de todas las `fechaSalidaIda` de los vuelos agrupados, separadas por comas y ordenadas cronológicamente. Si solo hay una fecha (es decir, no hubo agrupación), OMITE COMPLETAMENTE esta línea "Fechas disponibles:".
-    * Asegúrate de que el resultado final solo presente **hasta 5 bloques de opciones de vuelo distintos** (un bloque representa un vuelo único o un grupo de vuelos idénticos por fecha).
+Agrupá las fechas si hay varias combinaciones con el mismo vuelo (misma aerolínea, mismo itinerario y precio), listando las fechas en una sola línea al final como:
 
-4.  **Redactar el mensaje final para el cliente:**
-    * **Tono:** Natural, humano, directo y conciso.
-    * **Formato de cada vuelo:** **ESTRICTAMENTE** el siguiente formato. Rellena los `{{...}}` con los datos correspondientes de cada vuelo.
-        ```
-        ✈️ Aéreo de {{aerolinea}} con equipaje de mano de 10kg + bolso de mano.
+`Fechas disponibles: {{lista_de_fechas_ida}}`
 
-        Horarios:
+3. Formato del mensaje
+Respetá exactamente este formato por opción:
+✈️ Aéreo de {{aerolinea}} con equipaje de mano de 10kg + bolso de mano.
 
-        ida:
-            Salida:  {{aeropuertoIda}} {{horarioSalidaIda}} | {{fechaSalidaIda}}
-            Escala: {{horarioLlegadaIdaEscala}} -> {{fechaLlegadaIdaEscala}} || {{horarioSalidaIdaEscala}} -> {{fechaSalidaIdaEscala}} (UBICACION_ESCALA)
-            Llegada: {{aeropuertoDestinoIda}} {{horarioLlegadaIda}} | {{fechaLlegadaIda}}
-            (Duración: {{horarioSupongoDuracionIda}}) || {{escalasIda}}
+Horarios:
 
-        vuelta:
-            Salida:  {{aeropuertoVuelta}} {{horarioSalidaVuelta}} | {{fechaSalidaVuelta}}
-            Escala: {{horarioLlegadaVueltaEscala}} -> {{fechaLlegadaVueltaEscala}} || {{horarioSalidaVueltaEscala}} -> {{fechaSalidaVueltaEscala}} (UBICACION_ESCALA)
-            Llegada: {{aeropuertoDestinoVuelta}} {{horarioLlegadaVuelta}} | {{fechaLlegadaVuelta}}
-            (Duración: {{horarioSupongoDuracionVuelta}}) || {{escalasVuelta}}
-        
-        💰 Precio final: {{precioFinal}} USD
-        [Fechas disponibles: {{lista_de_fechas_salida_ida_agrupadas}} (ida) / {{lista_de_fechas_salida_vuelta_agrupadas}} (vuelta)] (Solo si hay fechas agrupadas. No incluyas los corchetes en la salida.)
-        ```
-    * **Introducción/Cierre:** NO incluyas frases introductorias (como "Aquí tienes una selección de...") ni frases de cierre adicionales antes de la recomendación final. El mensaje debe empezar directamente con el primer bloque de opción de vuelo.
-    * **No repeticiones:** Evita repetir detalles técnicos obvios o usar frases como "es la mejor opción" o "comparando" en la descripción de las opciones de vuelo en sí.
-    * **No proceso de análisis:** No expliques cómo llegaste a tu conclusión o cómo hiciste el filtrado/agrupación dentro del mensaje final.
-    * **Orden:** Muestra los bloques de opciones de vuelo seleccionados de la mejor a la peor opción (según la priorización del paso 2).
+ida:
+Salida: {{aeropuertoIda}} {{horarioSalidaIda}} | {{fechaSalidaIda}}
+Escala: {{horarioLlegadaIdaEscala}} -> {{fechaLlegadaIdaEscala}} || {{horarioSalidaIdaEscala}} -> {{fechaSalidaIdaEscala}} (UBICACION_ESCALA)
+Llegada: {{aeropuertoDestinoIda}} {{horarioLlegadaIda}} | {{fechaLlegadaIda}}
+(Duración: {{horarioSupongoDuracionIda}}) || {{escalasIda}}
 
-5.  **Recomendación Final:** Al final del mensaje, después de todas las opciones de vuelo, incluye una recomendación clara y directa.
-    * Indica cuál de las opciones presentadas (referenciándola brevemente por alguna de sus características clave, ej. "la opción de [Aerolinea] a [Precio] para [Fechas]") consideras más adecuada para el cliente.
-    * Explica brevemente *por qué* es la más adecuada (ej. "por ser la más económica", "por su excelente combinación de precio y escalas", "por ser directo y rápido").
+vuelta:
+Salida: {{aeropuertoVuelta}} {{horarioSalidaVuelta}} | {{fechaSalidaVuelta}}
+Escala: {{horarioLlegadaVueltaEscala}} -> {{fechaLlegadaVueltaEscala}} || {{horarioSalidaVueltaEscala}} -> {{fechaSalidaVueltaEscala}} (UBICACION_ESCALA)
+Llegada: {{aeropuertoDestinoVuelta}} {{horarioLlegadaVuelta}} | {{fechaLlegadaVuelta}}
+(Duración: {{horarioSupongoDuracionVuelta}}) || {{escalasVuelta}}
 
----
+💰 Precio final: {{precioFinal}} USD
 
-lista de vuelos:
+4. Resultado esperado
+✅ Exactamente 5 bloques de vuelo distintos  
+✅ Ordenados de mejor a menos mejor  
+✅ No repitas vuelos idénticos con distinta fecha, agrupalos  
+✅ Al final, agregá una recomendación concreta (Ej: “La mejor opción es la 1 por ser la más económica con buena duración y pocas escalas.”)  
+✅ No incluyas ningún otro texto
+
+📦 JSON a analizar:  
 {vuelos_formateados}
-Escribe una única respuesta como si fueras un asesor humano que ya analizó todo y ahora
+
 """ 
         try:
-            response = client.chat(
-                model="llama3.2",
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0}
+             
+            res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=4096
             )
-            print(response["message"]["content"])
+            texto = res.choices[0].message.content
+            print(texto)
         except Exception as e:
             print(f"Error al generar respuesta con Ollama: {e}")
             traceback.print_exc() # Imprime el traceback completo para depuración

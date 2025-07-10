@@ -10,11 +10,12 @@ const app = express();
 const PORT = 3030;
 app.use(cors());
 app.use(json());
+app.use(express.json()); // 👈 necesario para que req.body funcione
 const IA_API_BASE_URL = 'http://ia-api:3020/api';
 // POST / RECIBE OBJETOS PARA HACER SCRAPING
 app.post('/evento', async (req, res) => {
     const objetoViaje = req.body.data;
-    console.log('📥 Evento recibido:', objetoViaje);
+    console.log("Tipo de datos recibidos:", typeof req.body);
     try {
         const resultados = await haciendoScraping(objetoViaje);
         await res.status(200).json({ ok: true, resultados });
@@ -72,7 +73,6 @@ app.put('/modificarDestinos', async (req, res) => {
 app.post('/crearDestino', async (req, res) => {
     const nuevoDestino = req.body;
     console.log("nuevo destino (crear)", nuevoDestino);
-    console.log("CREAMOOOOSSSSS");
     try {
         const response = await fetch(`${IA_API_BASE_URL}/destinos`, {
             method: "POST",
@@ -83,7 +83,16 @@ app.post('/crearDestino', async (req, res) => {
             const errorData = await response.json();
             throw new Error(errorData.result || `Error al crear destino: ${response.status}`);
         }
-        const result = await response.json();
+        const contentType = response.headers.get('content-type');
+        let result;
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+        }
+        else {
+            const text = await response.text(); // muestra HTML si hubo error
+            console.error("La IA API devolvió una respuesta no JSON:", text);
+            throw new Error("Respuesta no válida de IA API");
+        }
         return res.status(201).json(result); // 201 Created
     }
     catch (error) {
@@ -94,7 +103,7 @@ app.post('/crearDestino', async (req, res) => {
 // DELETE / ELIMINAR DESTINOS
 app.delete('/eliminarDestino', async (req, res) => {
     const ciudadEliminar = req.body; // Asumiendo que el body es { ciudad: "NombreCiudad" }
-    console.log("desde la api (eliminar)", ciudadEliminar);
+    console.log("desde el backend (eliminar)", ciudadEliminar);
     try {
         const response = await fetch(`${IA_API_BASE_URL}/destinos/${ciudadEliminar.ciudad}`, {
             method: "DELETE",
@@ -123,7 +132,8 @@ const haciendoScraping = async (objetoViaje) => {
     let browser; // podés tipar mejor si usás types de Playwright
     let context;
     const respuestas = [];
-    console.log("HACE EL SCARPING?=????????????");
+    console.log("ARRIBA DEL ONEJTO");
+    console.log(objetoViaje[0].mail);
     try {
         const result = await getContextConSesionValida({
             mail: objetoViaje[0].mail,
@@ -138,6 +148,7 @@ const haciendoScraping = async (objetoViaje) => {
             return scrapingVuelos(vuelo);
         });
         const scrapingResults = await Promise.all(scrapingPromises);
+        console.log("RESUULTADOOSOOSOSOS ", scrapingResults);
         respuestas.push(...scrapingResults.filter((r) => r !== undefined));
         console.log("✅ Resultados de scraping:", respuestas);
         return respuestas;
@@ -149,22 +160,22 @@ const haciendoScraping = async (objetoViaje) => {
         }
     }
 };
-const fetching = async (data) => {
-    await fetch('http://localhost:3020/mensajeFormateado', {
-        method: "POST",
-        body: JSON.stringify({ data }),
-        headers: {
-            "Content-Type": "application/json",
-        },
-    })
-        .then((res) => res.json())
-        .then((data) => {
-        console.log("Respuesta del servidor:", data);
-    })
-        .catch((error) => {
-        console.error("Error al enviar el formulario:", error);
-    });
-};
+// const fetching = async (data: any) => {
+//   await fetch('http://localhost:3020/mensajeFormateado', {
+//     method: "POST",
+//     body: JSON.stringify({ data }),
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   })
+//     .then((res) => res.json())
+//     .then((data) => {
+//       console.log("Respuesta del servidor:", data);
+//     })
+//     .catch((error) => {
+//       console.error("Error al enviar el formulario:", error);
+//     });
+// }
 const llamandoDestinos = async () => {
     try {
         const response = await fetch(`${IA_API_BASE_URL}/destinos`, {

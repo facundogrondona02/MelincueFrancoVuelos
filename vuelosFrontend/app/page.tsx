@@ -5,118 +5,110 @@ import { Mensaje, FormData } from "./types/types";
 import { MostrarDestinos } from "./mostrarDestinos";
 
 export default function Home() {
-  const [mensaje, setMensaje] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [verForm, setVerForm] = useState<boolean>(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [verForm, setVerForm] = useState<boolean>(false); // Función para enviar datos al backend para scraping
 
-  // Función para enviar datos al backend para scraping
-  const fetching = (data: Mensaje) => {
-    setLoading(true);
-    console.log("Enviando mensaje al backend para scraping:", data);
-    fetch(`${process.env.NEXT_PUBLIC_IA_API_URL}/mensaje`, {
-      method: "POST",
-      body: JSON.stringify( data ),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Respuesta del servidor de scraping:", data.status);
-        if (data.status === "recibido") {
-          setMensaje(
-            data.data || "Scraping exitoso, pero no se devolvió mensaje."
-          );
-        } else {
-          setMensaje("El scraping falló: " + data.mensaje);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error al enviar el formulario de scraping:", error);
-        setMensaje("Ocurrió un error al enviar el formulario de scraping.");
-        setLoading(false);
-      });
-  };
+  const fetching = async (data: Mensaje) => {
+    setLoading(true);
+    console.log("Enviando mensaje al backend para scraping:", data);
+    try {
+      const res = await fetch("/api/route", {
+        // <-- acá corregido
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      console.log("respuesta nashe ", json);
 
-  // Manejador para el envío del formulario de vuelo
-  async function handleFlightFormSubmit(data: Mensaje) {
-    console.log("Datos del formulario de vuelo recibidos en el cliente:", data);
-    fetching(data);
-  }
+      if (json.result) {
+        setMensaje(json.result);
+      } else {
+        setMensaje("Error: " + (json.error || "Error desconocido"));
+      }
+    } catch (e) {
+      console.error("Error al conectar con el backend", e);
+      setMensaje("Error de conexión");
+    } finally {
+      setLoading(false); // <-- importante para que se actualice la vista
+    }
+  };
+  // Manejador para el envío del formulario de vuelo
 
-  // Función para guardar un nuevo destino (llamando al backend)
-  async function guardarDestino(data: FormData) {
-    console.log("Intentando guardar destino desde el Home:", data);
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/crearDestino`, { 
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        console.log("Respuesta del servidor al crear destino:", res);
-        if (res.ok) {
-          console.log("Destino creado correctamente");
-          setVerForm(false); // Vuelve a la vista del formulario de vuelo
-        } else {
-          console.error("Error al crear el destino:", res.mensaje || res.result);
-        }
-      })
-      .catch((error) => {
-        console.error("Error al enviar la solicitud para crear destino:", error);
-      });
-  }
+  async function handleFlightFormSubmit(data: Mensaje) {
+    console.log("Datos del formulario de vuelo recibidos en el cliente:", data);
+    fetching(data);
+  } // Función para guardar un nuevo destino (llamando al backend)
 
-  return (
-    <main className="app-main-container"> {/* Clase actualizada */}
-      <h1 className="app-main-title">Bienvenido a Vuelo Frontend</h1> {/* Clase actualizada */}
+  async function guardarDestino(data: FormData) {
+    console.log("Guardamos desde el front nashe:", data);
+    try {
+      const res = await fetch("/api/destino", {
+        // <-- acá corregido
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      console.log("respuesta nashe ", json);
 
-      {verForm ? (
-        <div className="app-card-box"> {/* Clase actualizada */}
-          <h2 className="app-card-title">Administrar Destinos</h2> {/* Clase actualizada */}
-          <div className="app-button-group-main"> {/* Clase actualizada */}
-            <button
-              onClick={() => setVerForm(false)}
-              className="app-btn-primary" 
-            >
-              Volver a Búsqueda
-            </button>
-          </div>
-          <MostrarDestinos crearDestino={guardarDestino} />
-        </div>
-      ) : (
-        <div className="app-card-box"> {/* Clase actualizada */}
-          <h2 className="app-card-title">Formulario de búsqueda de vuelo</h2> {/* Clase actualizada */}
-          <div className="app-button-group-main"> {/* Clase actualizada */}
-            <button
-              onClick={() => setVerForm(true)}
-              className="app-btn-primary" 
-            >
-              Administrar Destinos
-            </button>
-          </div>
-          <FlightForm onSubmit={handleFlightFormSubmit} loading={loading} />
-          {loading ? (
-            <p className="app-text-loading">Esperando respuesta del bot...</p> 
-          ) : (
-            mensaje && (
-              <div className="app-result-flex-container"> {/* Clase actualizada */}
-                <div className="app-card-box"> {/* Clase actualizada (result-box se combina con card-container) */}
-                  <h2 className="app-result-title"> {/* Nueva clase específica para el título de resultado */}
-                    ✈️ Detalles del vuelo
-                  </h2>
-                  <pre className="app-result-code"> {/* Clase actualizada */}
-                    {typeof mensaje === "string"
-                      ? mensaje
-                      : JSON.stringify(mensaje)}
-                  </pre>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </main>
-  );
+      console.log("Respuesta del servidor al crear destino:", res);
+      if (json.ok) {
+        console.log("Destino creado correctamente");
+        setVerForm(false); // Vuelve a la vista del formulario de vuelo
+      } else {
+        console.error(
+          "Error al crear el destino:",
+          json.result
+        );
+      }
+
+    } catch (e) {
+        console.error(
+          "Error al enviar la solicitud para crear destino:",
+          e
+        );
+    } 
+  }
+
+  return (
+   <main className="vuelo-main-container">
+  <h1 className="vuelo-title">Formulario de búsqueda de vuelo</h1>
+
+  {verForm ? (
+    <div className="vuelo-card">
+      <h2 className="vuelo-subtitle">Administrar Destinos</h2>
+      <div className="vuelo-button-group">
+        <button onClick={() => setVerForm(false)} className="vuelo-btn">
+          Volver a Búsqueda
+        </button>
+      </div>
+      <MostrarDestinos crearDestino={guardarDestino} />
+    </div>
+  ) : (
+    <div className="vuelo-card">
+      <div className="vuelo-button-group">
+        <button onClick={() => setVerForm(true)} className="vuelo-btn">
+          Administrar Destinos
+        </button>
+      </div>
+      <FlightForm onSubmit={handleFlightFormSubmit} loading={loading} />
+
+      {loading ? (
+        <p className="vuelo-loading">Esperando respuesta del bot...</p>
+      ) : (
+        mensaje && (
+          <div className="vuelo-result-box">
+            <h2 className="vuelo-result-title">✈️ Detalles del vuelo</h2>
+            <pre className="vuelo-result-content">
+              {typeof mensaje === "string" ? mensaje : JSON.stringify(mensaje)}
+            </pre>
+          </div>
+        )
+      )}
+    </div>
+  )}
+</main>
+  );
 }

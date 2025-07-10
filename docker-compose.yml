@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -20,15 +18,14 @@ services:
       context: ./vuelosFrontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       NODE_ENV: production
-      # Usamos nombres de servicio internos en la red de Docker
       NEXT_PUBLIC_IA_API_URL: http://ia-api:3020
       NEXT_PUBLIC_BACKEND_API_URL: http://backend:3030
     depends_on:
-      - ia-api
       - backend
+      - ia-api
     networks:
       - melincue-network
 
@@ -38,34 +35,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3020:3020"
-    volumes:
-      - ./vuelosIA/api-js:/app/vuelosIA/api-js
-      - vuelosia_node_modules:/app/vuelosIA/api-js/node_modules
     environment:
       NODE_ENV: development
       BACKEND_API_URL: http://backend:3030
-    networks:
-      - melincue-network
-    depends_on:
-      - ollama  
-
-  ollama:
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
     volumes:
-      - ollama_data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./vuelosIA/api-js/data:/app/data
     networks:
       - melincue-network
-
-volumes:
-  ollama_data:
-  vuelosia_node_modules:
 
 networks:
   melincue-network:

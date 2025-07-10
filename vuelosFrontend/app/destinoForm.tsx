@@ -65,6 +65,7 @@ export function DestinoForm({ onSubmit, initialData }: DestinoFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("DATA DEL NUEVO DESTINO ", formData)
     onSubmit(formData); // Llama a la función onSubmit pasada por props
   };
 

@@ -4,15 +4,7 @@
     "codigoIATA": "CUN"
   },
   {
-    "ciudad": "Santiago",
-    "codigoIATA": "SCL"
-  },
-  {
     "ciudad": "Rio",
     "codigoIATA": "RIO"
-  },
-  {
-    "ciudad": "Miami",
-    "codigoIATA": "MIA"
   }
 ]

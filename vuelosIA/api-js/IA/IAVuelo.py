@@ -1,12 +1,12 @@
-import json
-import re
-from fuzzywuzzy import process, fuzz
-import os # Importamos el módulo os para manejar rutas
 import sys
 import json
-import ollama
 import re
 from rapidfuzz import process, fuzz
+from openai import OpenAI
+import os
+
+key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=key)
 
 MESES = {
     "enero": "JAN", "febrero": "FEB", "marzo": "MAR", "abril": "APR",
@@ -14,58 +14,87 @@ MESES = {
     "septiembre": "SEP", "octubre": "OCT", "noviembre": "NOV", "diciembre": "DEC"
 }
 
-client = ollama.Client(host='http://ollama:11434')
-
-
 def es_fecha_rango_concreto(frase):
-    # Detecta frases tipo "del 10 al 20 de agosto"
     return bool(re.search(r"del?\s+\d{1,2}\s+(al|hasta)\s+\d{1,2}\s+de\s+\w+", frase.lower()))
 
 def extraer_fechas_desde_frase(frase):
-    """
-    Detecta rangos del tipo 'del 10 al 20 de agosto' o fechas únicas 'el 3 de agosto' 
-    en la frase y devuelve departureDate y returnDate en formato DDMMM.
-    """
-    frase = frase.lower()
-
-    # 1) Rango explícito: "del 10 al 20 de agosto"
-    rango_pattern = r"del (\d{1,2}) al (\d{1,2}) de (\w+)"
-    match = re.search(rango_pattern, frase)
+    match = re.search(r"del (\d{1,2}) al (\d{1,2}) de (\w+)", frase.lower())
     if match:
         dia_ini, dia_fin, mes = match.groups()
-        mes = mes.lower()
         if mes in MESES:
-            departureDate = f"{int(dia_ini):02d}{MESES[mes]}"
-            returnDate = f"{int(dia_fin):02d}{MESES[mes]}"
-            return departureDate, returnDate, "rango"
-
-    # 2) Fecha única: "el 3 de agosto"
-    fecha_unica_pattern = r"el (\d{1,2}) de (\w+)"
-    match = re.search(fecha_unica_pattern, frase)
+            return (f"{int(dia_ini):02d}{MESES[mes]}", f"{int(dia_fin):02d}{MESES[mes]}", "rango")
+    match = re.search(r"el (\d{1,2}) de (\w+)", frase.lower())
     if match:
         dia, mes = match.groups()
-        mes = mes.lower()
         if mes in MESES:
-            departureDate = f"{int(dia):02d}{MESES[mes]}"
-            dia_ret = int(dia) + 7  # Asumimos viaje de 7 días
-            returnDate = f"{dia_ret:02d}{MESES[mes]}"
-            return departureDate, returnDate, "fechaExacta"
-
+            dep = f"{int(dia):02d}{MESES[mes]}"
+            ret = f"{int(dia)+7:02d}{MESES[mes]}"
+            return (dep, ret, "fechaExacta")
     return None, None, None
 
-def match_fecha_concreta(frase_fecha_ambigua, ejemplos_fechas, umbral=85):
-    frases = [ej["frase"] for ej in ejemplos_fechas]
-    match_score = process.extractOne(frase_fecha_ambigua, frases, scorer=fuzz.WRatio)
-    if match_score:
-       match, score, idx = match_score
-    if score >= umbral:
-        return ejemplos_fechas[idx]
+def match_fecha_concreta(frase, ejemplos, umbral=85):
+    frases = [ej["frase"] for ej in ejemplos]
+    match = process.extractOne(frase, frases, scorer=fuzz.WRatio)
+    if match and match[1] >= umbral:
+        return ejemplos[match[2]]
     return None
 
-def generar_json_desde_mensaje(mensaje):
-    ejemplos_fechas = json.load(open("IA/ejemplos.json", encoding="utf-8"))
-    lista_ejemplos = ejemplos_fechas["ejemplos"]
+def obtener_codigo_iata(obj, ruta="data/codigoIATA.json"):
+    try:
+        with open(ruta, "r", encoding="utf-8") as f:
+            destinos = json.load(f)
+        ciudades = [d["ciudad"].lower().strip() for d in destinos]
+        dest_usuario = obj.get("origenVuelta", "").lower().strip()
+        match = process.extractOne(dest_usuario, ciudades, scorer=fuzz.WRatio)
+        if match and match[1] >= 70:
+            for d in destinos:
+                if d["ciudad"].lower().strip() == match[0]:
+                    obj["origenVuelta"] = d["codigoIATA"]
+                    break
+    except Exception as e:
+        print("⚠️ Error cargando código IATA:", e)
+    return obj
 
+def cargar_destinos():
+    try:    
+        with open("data/destinos.json", "r", encoding="utf-8") as f:
+            destinos = json.load(f)
+        return { d["origenVuelta"]: d for d in destinos }
+    except Exception as e:
+        print("⚠️ Error cargando destinos:", e)
+        return {}
+
+def completar_objetos_finales(base):
+    destinos = cargar_destinos()
+    origen = base.get("origenVuelta", "")
+    config = destinos.get(origen, {
+        "maxDuracionIda": "", "maxDuracionVuelta": "",
+        "horarioIdaEntre": "", "horarioIdaHasta": "",
+        "horarioVueltaEntre": "", "horarioVueltaHasta": "",
+        "stops": 0
+    })
+    return {
+        "mail": "franco@melincue.tur.ar",
+        "password": "Francomase12!",
+        "origenIda": "BUE",
+        "origenVuelta": origen,
+        "departureDate": base.get("departureDate", ""),
+        "returnDate": base.get("returnDate", ""),
+        "adults": base.get("adults", 0),
+        "children": base.get("children", 0),
+        "infants": base.get("infants", 0),
+        "currency": "USD",
+        "checkedBaggage": False,
+        "maxDuracionIda": config.get("maxDuracionIda", ""),
+        "maxDuracionVuelta": config.get("maxDuracionVuelta", ""),
+        "horarioIdaEntre": config.get("horarioIdaEntre", ""),
+        "horarioIdaHasta": config.get("horarioIdaHasta", ""),
+        "horarioVueltaEntre": config.get("horarioVueltaEntre", ""),
+        "horarioVueltaHasta": config.get("horarioVueltaHasta", ""),
+        "stops": config.get("stops", 0)
+    }
+
+def generar_json_desde_mensaje(mensaje):
     prompt = f"""
 Sos una IA que recibe mensajes de clientes y devuelve un objeto  con los datos del vuelo.
 
@@ -82,11 +111,13 @@ Respondé SOLO con el objeto JSON puro (sin texto adicional, sin explicaciones).
 - children: cantidad de niños (3 a 11 años) 
 - infants: cantidad de bebés menores de 3 años 
 
---- 
+---
+
 **Reglas y detalles importantes:**
 2. El destino (`origenVuelta`) debe ser un lugar valido⚠ IMPORTANTE:
 
---- 
+---
+
 =======================
 1. INTERPRETACIÓN ROBUSTA DE PASAJEROS
 =======================
@@ -124,7 +155,7 @@ Respondé SOLO con el objeto JSON puro (sin texto adicional, sin explicaciones).
 | "me quiero ir con mi  hijo de 22 y mi mama"                 | 3      | 0        | 0       |
 | "quiero un viaje para 2 mayore y un menor "                 | 2      | 1        | 0       |
 | "viajo a "                                                  | 1      | 0        | 0       |
-| "quiero ir a cancun 2 semanas "                             | 1      | 0        | 0       |
+
 
 🛑 Nunca devuelvas números incorrectos. Detectar edades bien es crucial para la reserva.
 
@@ -196,7 +227,6 @@ todos los campos del objeto que tenes que retonar tienen que tener un valor si o
 No tenes que inventar fechas, segui el paso a paso de las instrucciones.
 Cada campo a completar tiene un instructivo preciso de lo que se pide, seguilo al 100% siempre
 Siempre devolve un solo json, nunca retornes 2, SIEMPRE RETORNA 1 SOLO JSON
-ultima quincena o última quincena es lo mismo que segunda quincena, usa la misma informacion que te da segunda informacion
 
 ⚠️ Respondé solamente con UN único objeto JSON. No expliques nada, no devuelvas más de un JSON.
 
@@ -205,164 +235,92 @@ ultima quincena o última quincena es lo mismo que segunda quincena, usa la mism
 ---
 Mensaje del cliente:
 \"\"\"{mensaje}\"\"\"
-
     """
-
-    print(">> Enviando a Ollama...")
     try:
-        response = client.chat(
-        model="llama3.2",
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0}
-    )
+        res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_completion_tokens=1000
+        )
+        texto = res.choices[0].message.content
     except Exception as e:
-        print(f"Error en llamada a Ollama: {e}")
-    return {}
+        print("❌ Error llamando a la API de OpenAI:", e)
+        return None
 
-    print(">> Respuesta recibida de Ollama")
-    respuesta_texto = response["message"]["content"].strip()
-
-    json_match = re.search(r"\{.*\}", respuesta_texto, re.DOTALL)
-    if json_match:
-        json_str = json_match.group(0)
-        try:
-            resultado_json = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            print("Error al parsear el JSON extraído:")
-            print(json_str)
-            raise e
-    else:
-        print("No se encontró un JSON válido dentro de la respuesta:")
-        print(respuesta_texto)
-        raise ValueError("No se pudo extraer un JSON válido de la respuesta de la IA.")
-
-    frase = resultado_json.get("fraseFecha", "")
-
-    # 1) Si es fecha concreta → extraerla directamente
-    if es_fecha_rango_concreto(frase):
-        dep, ret, tipo = extraer_fechas_desde_frase(frase)
-        if dep and ret:
-            resultado_json["departureDate"] = dep
-            resultado_json["returnDate"] = ret
-            resultado_json["tipoFecha"] = tipo
-        else:
-            resultado_json["departureDate"] = ""
-            resultado_json["returnDate"] = ""
-            resultado_json["tipoFecha"] = ""
-    else:
-        # 2) Buscar en ejemplos de semanas/quincenas
-        match_fecha = match_fecha_concreta(frase, lista_ejemplos)
-        if match_fecha:
-            resultado_json["departureDate"] = match_fecha["departureDate"]
-            resultado_json["returnDate"] = match_fecha["returnDate"]
-            resultado_json["tipoFecha"] = match_fecha.get("tipoFecha", "semana/quincena")
-        else:
-            resultado_json["departureDate"] = ""
-            resultado_json["returnDate"] = ""
-            resultado_json["tipoFecha"] = ""
-
-    return resultado_json
-
-
-
-
-def obtener_codigo_iata(destino_obj, ruta_json="data/codigoIATA.json"):
-    if not isinstance(destino_obj, dict):
-        return destino_obj
-
-    destino_usuario = destino_obj.get("origenVuelta", "").lower().strip()
-    if not destino_usuario:
-        return destino_obj
+    match = re.search(r"\{[\s\S]*?\}", texto)
+    if not match:
+        print("❌ No se encontró objeto JSON en la respuesta:", texto)
+        return None
 
     try:
-        with open(ruta_json, "r", encoding="utf-8") as f:
-            destinos_data = json.load(f)
-    except Exception as e:
-        print(f"Error cargando {ruta_json}: {e}")
-        return destino_obj
-
-    # Armamos la lista de nombres de ciudades en minúsculas
-    ciudades = [d["ciudad"].lower().strip() for d in destinos_data]
-
-    mejor_coincidencia = process.extractOne(
-        destino_usuario,
-        ciudades,
-        scorer=fuzz.WRatio
-    )
-
-    if mejor_coincidencia:
-        ciudad_match, score, _ = mejor_coincidencia
-        if score >= 70:
-            # Buscamos el código IATA correspondiente
-            for d in destinos_data:
-                if d["ciudad"].lower().strip() == ciudad_match:
-                    destino_obj["origenVuelta"] = d["codigoIATA"]
-                    break
-        else:
-            print(f"No hubo coincidencia confiable para '{destino_usuario}' (score={score})")
-    else:
-        print(f"No se encontró ninguna coincidencia para '{destino_usuario}'")
-
-    return destino_obj
-
-
-
-
-def cargar_destinos():
-    ruta_archivo = os.path.join(os.path.dirname(__file__), '..', 'data', 'destinos.json')
-    with open(ruta_archivo, 'r') as f:
-        destinos = json.load(f)
-    print("🔍 Destinos cargados:", destinos)
-    # Devolvemos un diccionario con clave origenVuelta para buscar fácil después
-    return { destino["origenVuelta"]: destino for destino in destinos }
-
-
-def completar_objetos_finales(vuelo):
-    # Tabla de datos por ciudad
-    print("🛬 Vuelo recibido para completar:", vuelo)
-    tabla_destinos = cargar_destinos()
-    print(f"la tabla de desitnos {tabla_destinos}")
-    origen = vuelo.get("origenVuelta", "")
-    if origen not in tabla_destinos:
-       print(f"⚠️  Advertencia: origen {origen} no encontrado en destinos.json, se usan valores por defecto.")
-    datos_destino = tabla_destinos.get(origen, {})
-
-    vuelo_completo = {
-        "mail": "franco@melincue.tur.ar",
-        "password": "Francomase12!",
-        "origenIda": "BUE",
-        "origenVuelta": origen,
-        "departureDate": vuelo.get("departureDate", ""),
-        "returnDate": vuelo.get("returnDate", ""),
-        "adults": vuelo.get("adults", 0),
-        "children": vuelo.get("children", 0),
-        "infants": vuelo.get("infants", 0),
-        "currency": "USD",
-        "checkedBaggage": False,
-        "maxDuracionIda": datos_destino["maxDuracionIda"],
-        "maxDuracionVuelta": datos_destino["maxDuracionVuelta"],
-        "horarioIdaEntre": datos_destino["horarioIdaEntre"],
-        "horarioIdaHasta": datos_destino["horarioIdaHasta"],
-        "horarioVueltaEntre": datos_destino["horarioVueltaEntre"],
-        "horarioVueltaHasta": datos_destino["horarioVueltaHasta"],
-        "stops": datos_destino["stops"]
-    }
-
-
-    return vuelo_completo 
-
-
-
-
-
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        print("❌ JSON mal formado:", texto)
+        return None
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Error: falta el mensaje como argumento.")
+        print("❗ Uso: python procesar_mensaje.py \"Tu mensaje\"")
         sys.exit(1)
 
     mensaje = sys.argv[1]
-    res = generar_json_desde_mensaje(mensaje)
-    destino_final = obtener_codigo_iata(res)
-    res_final =completar_objetos_finales(destino_final)
-    print(json.dumps(res_final, indent=2, ensure_ascii=False))
+    vuelo_raw = generar_json_desde_mensaje(mensaje)
+
+    if not vuelo_raw:
+        print("❌ No se pudo generar un objeto base desde la IA.")
+        sys.exit(1)
+
+    frase = vuelo_raw.get("fraseFecha", "")
+    try:
+        ejemplos = json.load(open("IA/ejemplos.json", "r", encoding="utf-8"))["ejemplos"]
+    except Exception as e:
+        print("⚠️ Error cargando ejemplos.json:", e)
+        ejemplos = []
+
+    if es_fecha_rango_concreto(frase):
+        dep, ret, tipo = extraer_fechas_desde_frase(frase)
+    else:
+        matched = match_fecha_concreta(frase, ejemplos)
+        dep = matched.get("departureDate", "") if matched else ""
+        ret = matched.get("returnDate", "") if matched else ""
+        tipo = matched.get("tipoFecha", "") if matched else ""
+
+    vuelo_raw["departureDate"] = dep
+    vuelo_raw["returnDate"] = ret
+    vuelo_raw["tipoFecha"] = tipo
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("❗ Uso: python procesar_mensaje.py \"Tu mensaje\"")
+        sys.exit(1)
+
+    mensaje = sys.argv[1]
+    vuelo_raw = generar_json_desde_mensaje(mensaje)
+
+    if not vuelo_raw:
+        print("❌ No se pudo generar un objeto base desde la IA.")
+        sys.exit(1)
+
+    frase = vuelo_raw.get("fraseFecha", "")
+    try:
+        ejemplos = json.load(open("IA/ejemplos.json", "r", encoding="utf-8"))["ejemplos"]
+    except Exception as e:
+        print("⚠️ Error cargando ejemplos.json:", e)
+        ejemplos = []
+
+    if es_fecha_rango_concreto(frase):
+        dep, ret, tipo = extraer_fechas_desde_frase(frase)
+    else:
+        matched = match_fecha_concreta(frase, ejemplos)
+        dep = matched.get("departureDate", "") if matched else ""
+        ret = matched.get("returnDate", "") if matched else ""
+        tipo = matched.get("tipoFecha", "") if matched else ""
+
+    vuelo_raw["departureDate"] = dep
+    vuelo_raw["returnDate"] = ret
+    vuelo_raw["tipoFecha"] = tipo
+
+    vuelo_cod = obtener_codigo_iata(vuelo_raw)
+    vuelo_final = completar_objetos_finales(vuelo_cod)
+
+    print(json.dumps(vuelo_final, ensure_ascii=False, indent=2))

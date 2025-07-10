@@ -34,7 +34,20 @@ app.post('/mensaje', async (req, res) => {
 
   if (req.body.multibusqueda == false) {
     console.log("ENTRE AL IF")
-    objetoViaje.push(await generarJsonDesdeMensaje(mensajeCliente));
+    const generado = await generarJsonDesdeMensaje(mensajeCliente)
+    console.log("Generado ", generado);
+    let obj;
+    if (typeof generado === "string") {
+      try {
+        obj = JSON.parse(generado);
+      } catch (e) {
+        console.error("❌ No se pudo parsear generado:", e);
+        obj = generado;
+      }
+    } else {
+      obj = generado;
+    }
+    objetoViaje.push(obj);
   } else {
     console.log("ENTRE AL ELSE")
     const array = await generarArrayMultibusqueda(mensajeCliente);
@@ -60,160 +73,160 @@ app.get('/mensaje', (req, res) => {
   res.json({ status: 'ok', mensaje: 'Hola desde JS puro' });
 });
 
-app.get('/api/destinos', async (req, res ) => {
-    try {
-        // 1. Construir la ruta absoluta al archivo
-        // Ya están definidas arriba: destinosFilePath y codigosFilePath
-      
-        // 2. Leer el archivo de forma asíncrona
-        const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
-        const iata = await fsPromises.readFile(codigosFilePath, 'utf-8');
-        // 3. Parsear el JSON
-        const destinos = JSON.parse(data);
-        const IATAS = JSON.parse(iata);
+app.get('/api/destinos', async (req, res) => {
+  try {
+    // 1. Construir la ruta absoluta al archivo
+    // Ya están definidas arriba: destinosFilePath y codigosFilePath
 
-        // 4. Enviar la respuesta
-        return res.status(200).json({ ok: true, destinos, IATAS });
-    } catch (error) {
-        console.error("Error al leer destinos en IA API:", error);
-        // Manejo de errores: si el archivo no existe o hay un problema,
-        // puedes devolver un array vacío o un error 500
-        if ((error).code === 'ENOENT') {
-             // Archivo no encontrado
-            return res.status(200).json({ ok: true, destinos: [] });
-        }
-        return res.status(500).json({ ok: false, message: "Error interno del servidor al obtener destinos." });
+    // 2. Leer el archivo de forma asíncrona
+    const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
+    const iata = await fsPromises.readFile(codigosFilePath, 'utf-8');
+    // 3. Parsear el JSON
+    const destinos = JSON.parse(data);
+    const IATAS = JSON.parse(iata);
+
+    // 4. Enviar la respuesta
+    return res.status(200).json({ ok: true, destinos, IATAS });
+  } catch (error) {
+    console.error("Error al leer destinos en IA API:", error);
+    // Manejo de errores: si el archivo no existe o hay un problema,
+    // puedes devolver un array vacío o un error 500
+    if ((error).code === 'ENOENT') {
+      // Archivo no encontrado
+      return res.status(200).json({ ok: true, destinos: [] });
     }
+    return res.status(500).json({ ok: false, message: "Error interno del servidor al obtener destinos." });
+  }
 });
 
 
-    // POST /api/destinos - Para crear un nuevo destino
-    app.post('/api/destinos', async (req, res) => {
-        const nuevoDestino = req.body; // El cliente envía el objeto completo
-        let destinosActuales= [];
-        let codigosIATASActuales = [];
+// POST /api/destinos - Para crear un nuevo destino
+app.post('/api/destinos', async (req, res) => {
+  const nuevoDestino = req.body; // El cliente envía el objeto completo
+  let destinosActuales = [];
+  let codigosIATASActuales = [];
+  console.log("nuevo destino desde api ia", nuevoDestino)
+  try {
+    const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
+    destinosActuales = JSON.parse(data);
+    const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
+    codigosIATASActuales = JSON.parse(cods);
+  } catch (error) {
+    if ((error).code === 'ENOENT') {
+      destinosActuales = [];
+      codigosIATASActuales = [];
+    } else {
+      console.error("Error leyendo archivos para crear destino:", error);
+      return res.status(500).json({ ok: false, result: "Error al preparar la creación de destino." });
+    }
+  }
 
-        try {
-            const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
-            destinosActuales = JSON.parse(data);
-            const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
-            codigosIATASActuales = JSON.parse(cods);
-        } catch (error) {
-            if ((error).code === 'ENOENT') {
-                destinosActuales = [];
-                codigosIATASActuales = [];
-            } else {
-                console.error("Error leyendo archivos para crear destino:", error);
-                return res.status(500).json({ ok: false, result: "Error al preparar la creación de destino." });
-            }
-        }
+  // Validar si ya existe
+  const existeDestino = destinosActuales.find(d => d.ciudad === nuevoDestino.ciudad);
+  const existeCodigo = codigosIATASActuales.find(c => c.ciudad === nuevoDestino.ciudad);
 
-        // Validar si ya existe
-        const existeDestino = destinosActuales.find(d => d.ciudad === nuevoDestino.ciudad);
-        const existeCodigo = codigosIATASActuales.find(c => c.ciudad === nuevoDestino.ciudad);
+  if (existeDestino || existeCodigo) {
+    return res.status(400).json({ ok: false, result: "Ya existe un destino o código IATA con esa ciudad." });
+  }
 
-        if (existeDestino || existeCodigo) {
-            return res.status(400).json({ ok: false, result: "Ya existe un destino o código IATA con esa ciudad." });
-        }
+  destinosActuales.push(nuevoDestino);
+  const objetoIATA = {
+    ciudad: nuevoDestino.ciudad,
+    codigoIATA: nuevoDestino.origenVuelta
+  };
+  codigosIATASActuales.push(objetoIATA);
 
-        destinosActuales.push(nuevoDestino);
-        const objetoIATA = {
-            ciudad: nuevoDestino.ciudad,
-            codigoIATA: nuevoDestino.origenVuelta
-        };
-        codigosIATASActuales.push(objetoIATA);
+  try {
+    await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
+    await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
+    return res.status(201).json({ ok: true, result: "Destino agregado correctamente." });
+  } catch (error) {
+    console.error("Error escribiendo archivos al crear destino:", error);
+    return res.status(500).json({ ok: false, result: "Error al guardar el nuevo destino." });
+  }
+});
 
-        try {
-            await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
-            await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
-            return res.status(201).json({ ok: true, result: "Destino agregado correctamente." });
-        } catch (error) {
-            console.error("Error escribiendo archivos al crear destino:", error);
-            return res.status(500).json({ ok: false, result: "Error al guardar el nuevo destino." });
-        }
-    });
+// PUT /api/destinos/:ciudad - Para modificar un destino
+app.put('/api/destinos/:ciudad', async (req, res) => {
+  const ciudadParam = req.params.ciudad;
+  const nuevoDestino = req.body; // El cliente envía el objeto completo
 
-    // PUT /api/destinos/:ciudad - Para modificar un destino
-    app.put('/api/destinos/:ciudad', async (req, res) => {
-        const ciudadParam = req.params.ciudad;
-        const nuevoDestino = req.body; // El cliente envía el objeto completo
+  if (ciudadParam !== nuevoDestino.ciudad) {
+    return res.status(400).json({ ok: false, result: "La ciudad en la URL no coincide con la ciudad en el cuerpo de la solicitud." });
+  }
 
-        if (ciudadParam !== nuevoDestino.ciudad) {
-            return res.status(400).json({ ok: false, result: "La ciudad en la URL no coincide con la ciudad en el cuerpo de la solicitud." });
-        }
+  let destinosActuales = [];
+  let codigosIATASActuales = [];
 
-        let destinosActuales= [];
-        let codigosIATASActuales = [];
+  try {
+    const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
+    destinosActuales = JSON.parse(data);
+    const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
+    codigosIATASActuales = JSON.parse(cods);
+  } catch (error) {
+    console.error("Error leyendo archivos para modificar destino:", error);
+    return res.status(500).json({ ok: false, result: "Error al preparar la modificación de destino." });
+  }
 
-        try {
-            const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
-            destinosActuales = JSON.parse(data);
-            const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
-            codigosIATASActuales = JSON.parse(cods);
-        } catch (error) {
-            console.error("Error leyendo archivos para modificar destino:", error);
-            return res.status(500).json({ ok: false, result: "Error al preparar la modificación de destino." });
-        }
+  const indexDestino = destinosActuales.findIndex(d => d.ciudad === ciudadParam);
+  const indexIATA = codigosIATASActuales.findIndex(c => c.ciudad === ciudadParam);
 
-        const indexDestino = destinosActuales.findIndex(d => d.ciudad === ciudadParam);
-        const indexIATA = codigosIATASActuales.findIndex(c => c.ciudad === ciudadParam);
+  if (indexDestino === -1 || indexIATA === -1) {
+    return res.status(404).json({ ok: false, result: "No se encuentra esta ciudad para modificar." });
+  }
 
-        if (indexDestino === -1 || indexIATA === -1) {
-            return res.status(404).json({ ok: false, result: "No se encuentra esta ciudad para modificar." });
-        }
+  destinosActuales[indexDestino] = { ...nuevoDestino };
+  codigosIATASActuales[indexIATA] = {
+    ciudad: nuevoDestino.ciudad,
+    codigoIATA: nuevoDestino.origenVuelta
+  };
 
-        destinosActuales[indexDestino] = { ...nuevoDestino };
-        codigosIATASActuales[indexIATA] = {
-            ciudad: nuevoDestino.ciudad,
-            codigoIATA: nuevoDestino.origenVuelta
-        };
+  try {
+    await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
+    await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
+    return res.status(200).json({ ok: true, result: "Destino actualizado correctamente." });
+  } catch (error) {
+    console.error("Error escribiendo archivos al modificar destino:", error);
+    return res.status(500).json({ ok: false, result: "Error al guardar los cambios." });
+  }
+});
 
-        try {
-            await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
-            await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
-            return res.status(200).json({ ok: true, result: "Destino actualizado correctamente." });
-        } catch (error) {
-            console.error("Error escribiendo archivos al modificar destino:", error);
-            return res.status(500).json({ ok: false, result: "Error al guardar los cambios." });
-        }
-    });
+// DELETE /api/destinos/:ciudad - Para eliminar un destino
+app.delete('/api/destinos/:ciudad', async (req, res) => {
+  const ciudadEliminar = req.params.ciudad; // Se espera la ciudad en la URL
+  console.log("DESDE API ELIMINAR =>  ", ciudadEliminar)
+  let destinosActuales = [];
+  let codigosIATASActuales = [];
 
-    // DELETE /api/destinos/:ciudad - Para eliminar un destino
-    app.delete('/api/destinos/:ciudad', async (req, res ) => {
-        const ciudadEliminar = req.params.ciudad; // Se espera la ciudad en la URL
+  try {
+    const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
+    destinosActuales = JSON.parse(data);
+    const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
+    codigosIATASActuales = JSON.parse(cods);
+  } catch (error) {
+    console.error("Error leyendo archivos para eliminar destino:", error);
+    return res.status(500).json({ ok: false, result: "Error al preparar la eliminación de destino." });
+  }
 
-        let destinosActuales= [];
-        let codigosIATASActuales= [];
+  const initialDestinosLength = destinosActuales.length;
+  const initialCodigosLength = codigosIATASActuales.length;
 
-        try {
-            const data = await fsPromises.readFile(destinosFilePath, 'utf-8');
-            destinosActuales = JSON.parse(data);
-            const cods = await fsPromises.readFile(codigosFilePath, 'utf-8');
-            codigosIATASActuales = JSON.parse(cods);
-        } catch (error) {
-            console.error("Error leyendo archivos para eliminar destino:", error);
-            return res.status(500).json({ ok: false, result: "Error al preparar la eliminación de destino." });
-        }
+  destinosActuales = destinosActuales.filter(d => d.ciudad !== ciudadEliminar);
+  codigosIATASActuales = codigosIATASActuales.filter(c => c.ciudad !== ciudadEliminar);
 
-        const initialDestinosLength = destinosActuales.length;
-        const initialCodigosLength = codigosIATASActuales.length;
+  if (destinosActuales.length === initialDestinosLength && codigosIATASActuales.length === initialCodigosLength) {
+    return res.status(404).json({ ok: false, result: `No se encontró la ciudad '${ciudadEliminar}' para eliminar.` });
+  }
 
-        destinosActuales = destinosActuales.filter(d => d.ciudad !== ciudadEliminar);
-        codigosIATASActuales = codigosIATASActuales.filter(c => c.ciudad !== ciudadEliminar);
-
-        if (destinosActuales.length === initialDestinosLength && codigosIATASActuales.length === initialCodigosLength) {
-            return res.status(404).json({ ok: false, result: `No se encontró la ciudad '${ciudadEliminar}' para eliminar.` });
-        }
-
-        try {
-            await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
-            await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
-            return res.status(200).json({ ok: true, result: `Destino '${ciudadEliminar}' eliminado correctamente.` });
-        } catch (error) {
-            console.error("Error escribiendo archivos al eliminar destino:", error);
-            return res.status(500).json({ ok: false, result: "Error al guardar los cambios después de eliminar." });
-        }
-    });
+  try {
+    await fsPromises.writeFile(destinosFilePath, JSON.stringify(destinosActuales, null, 2), 'utf-8');
+    await fsPromises.writeFile(codigosFilePath, JSON.stringify(codigosIATASActuales, null, 2), 'utf-8');
+    return res.status(200).json({ ok: true, result: `Destino '${ciudadEliminar}' eliminado correctamente.` });
+  } catch (error) {
+    console.error("Error escribiendo archivos al eliminar destino:", error);
+    return res.status(500).json({ ok: false, result: "Error al guardar los cambios después de eliminar." });
+  }
+});
 
 
 app.listen(PORT, () => {
@@ -226,6 +239,7 @@ const generandoRespuesta = async (data) => {
 }
 
 const fetching = async (data, expressRes) => { // Renombrado 'res' a 'expressRes'
+  console.log("ANTES DE IR AL BACK")
   await fetch("http://backend:3030/evento", {
     method: "POST",
     body: JSON.stringify({ data }),
@@ -233,7 +247,9 @@ const fetching = async (data, expressRes) => { // Renombrado 'res' a 'expressRes
       "Content-Type": "application/json",
     },
   })
-    .then((fetchResponse) => fetchResponse.json()) // Renombrado 'res' a 'fetchResponse'
+    .then((fetchResponse) => {
+    return  fetchResponse.json()
+    }) // Renombrado 'res' a 'fetchResponse'
     .then(async (data) => {
       console.log("Respuesta del servidor:", data);
       const respuestfinal = await generandoRespuesta(data.resultados)

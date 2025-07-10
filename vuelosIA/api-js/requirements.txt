@@ -1,3 +1,4 @@
 fuzzywuzzy
 python-Levenshtein 
-ollama 
+openai
+langchain

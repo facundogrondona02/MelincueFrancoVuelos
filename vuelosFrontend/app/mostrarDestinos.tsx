@@ -28,32 +28,30 @@ export function MostrarDestinos({ crearDestino }: MostrarDestinosProps) {
   async function fetchData() {
     setLoading(true); // Se debe establecer a true cada vez que se inicia un fetch
     setError(null); // Limpiar errores anteriores
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/destinos`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}: ${res.statusText}`);
-      }
 
-      const data = await res.json();
-      console.log("Respuesta del servidor (destinos):", data);
-      setDestinos(data.destinos || []);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
+   try {
+      const res = await fetch("/api/destino", {
+        // <-- acá corregido
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      });
+      const json = await res.json();
+      console.log("respuesta nashe ", json);
+
+      console.log("Respuesta del servidor al crear destino:", res);
+      if (json.ok) {
+        console.log("Destino creado correctamente");
+        setDestinos(json.result || []);
       } else {
-        setError("Error desconocido al cargar destinos.");
+       setError("Error al crear el destino:" + json.result);
       }
-    } finally {
+    } catch (e) {
+      setError("Error al enviar la solicitud para crear destino:"+ e);
+    }finally {
       setLoading(false);
     }
-  }
 
+  }
   useEffect(() => {
     fetchData();
   }, []);

@@ -1,13 +1,14 @@
 import sys
 import json
-import ollama
 import json
 import re
-import os
 from rapidfuzz import process, fuzz
 from concurrent.futures import ThreadPoolExecutor
+from openai import OpenAI
+import json
 
-client = ollama.Client(host='http://ollama:11434')
+client = OpenAI(api_key="***REMOVED***proj-PThVCd8Ml12wExHlDe97CK8m_o4ERbB2aJC3cZ3s9PTy5t4GP73J6PzSEUUFTaxKN3VwLl0xJzT3BlbkFJjtMXz2urO2bN7v1cPfbRiOQdz2hHlPsMegHZFtmnKruItGROdIGp7bjK0xGkz7mM1tp4kybpMA")
+
 
 
 def generar_ambas_llamadas(mensaje):
@@ -34,9 +35,6 @@ def limpiar_mensaje_usuario(mensaje):
     mensaje = mensaje.strip()
     return mensaje
 
-import json
-import ollama # Asumo que tu librería de Ollama está bien configurada
-import datetime # Para los cálculos de fechas en Python si tuvieras que hacer un fallback
 
 def generar_multi_busqueda(mensaje):
     mensaje_procesado = limpiar_mensaje_usuario(mensaje)
@@ -253,33 +251,31 @@ MENSAJE A PROCESAR:
     # y reglas que le proporcionamos directamente en el prompt.
     # El archivo json_fechas_completos.json es útil para TI como referencia o para un futuro
     # pre-entrenamiento si el modelo lo permite, pero no para este prompt directo.
-
-
-    response = client.chat(
-        model="llama3.2", # Asegúrate de que este modelo sea el que mejor responda a las instrucciones.
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0} # Temperatura en 0 para respuestas deterministas y consistentes.
-    )
-    content = response["message"]["content"]
+    res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=3000
+        )
+    texto = res.choices[0].message.content
 
     try:
         # Asegúrate de que limpiar_json sea robusto y maneje casos donde la IA podría
         # añadir texto antes o después del JSON, o generar un JSON malformado.
-        limpio = limpiar_json(content)
+        limpio = limpiar_json(texto)
         fechas = json.loads(limpio)
         if not fechas:
             raise ValueError("Array JSON vacío o inesperado después de limpieza.")
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON de la respuesta de la IA: {e}")
-        print(f"Contenido problemático recibido: {content}")
+        print(f"Contenido problemático recibido: {texto}")
         fechas = []  # Devolver una lista vacía en caso de error de parseo.
     except ValueError as e: # Captura el error de array vacío
         print(f"Error de validación del JSON: {e}")
-        print(f"Contenido recibido: {content}")
+        print(f"Contenido recibido: {texto}")
         fechas = []
     except Exception as e:
         print(f"Ocurrió un error inesperado: {e}")
-        print(f"Contenido recibido: {content}")
+        print(f"Contenido recibido: {texto}")
         fechas = []
     return fechas
 # NOTA: La función 'limpiar_json' debe estar definida en algún lugar y ser capaz de
@@ -469,15 +465,14 @@ MENSAJE DEL CLIENTE:
 
 """
 
-    respuesta = client.chat(
-        model="llama3.2",
-        messages=[{"role": "user", "content": prompt2}],
-        options={
-            "temperature": 0
-        }
-    )
+    res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt2}],
+            max_tokens=3000
+        )
 
-    content = respuesta["message"]["content"]
+
+    content = res.choices[0].message.content
     try:
        limpio = limpiar_json(content)
        params = json.loads(limpio)
@@ -506,16 +501,16 @@ def fusionar_resultados(fechas, parametros):
     return resultado_semifinal
 
 
-def obtener_codigos_iata_lista(destinos, ruta_json="data/codigoIATA.json"):
+def obtener_codigos_iata_lista(destinos):
     if not isinstance(destinos, list):
         print("Error: Se esperaba una lista de objetos destino.")
         return destinos
 
     try:
-        with open(ruta_json, "r", encoding="utf-8") as f:
+        with open("data/codigoIATA.json", "r", encoding="utf-8") as f:
             destinos_data = json.load(f)
     except Exception as e:
-        print(f"Error cargando {ruta_json}: {e}")
+        print(f"Error cargando {f}: {e}")
         return destinos
 
     ciudades = [d["ciudad"].lower().strip() for d in destinos_data]
@@ -550,8 +545,7 @@ def obtener_codigos_iata_lista(destinos, ruta_json="data/codigoIATA.json"):
 
 
 def cargar_destinos():
-    ruta_archivo = os.path.join(os.path.dirname(__file__), '..', 'data', 'destinos.json')
-    with open(ruta_archivo, 'r') as f:
+    with open("data/destinos.json", "r", encoding="utf-8") as f:
         destinos = json.load(f)
     # Devolvemos un diccionario con clave origenVuelta para buscar fácil después
     return { destino["origenVuelta"]: destino for destino in destinos }

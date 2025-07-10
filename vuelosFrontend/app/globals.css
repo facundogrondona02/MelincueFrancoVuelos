@@ -84,7 +84,6 @@ html, body {
 
 /* Botón Primario */
 .app-btn-primary {
-  composes: app-btn-base;
   background-color: #007bff; /* Azul vibrante */
 }
 .app-btn-primary:hover:not([disabled]) {
@@ -102,7 +101,6 @@ html, body {
 
 /* Botón Secundario */
 .app-btn-secondary {
-  composes: app-btn-base;
   background-color: #6c757d; /* Gris */
 }
 .app-btn-secondary:hover:not([disabled]) {
@@ -113,7 +111,6 @@ html, body {
 
 /* Botón Peligro */
 .app-btn-danger {
-  composes: app-btn-base;
   background-color: #dc3545; /* Rojo */
 }
 .app-btn-danger:hover:not([disabled]) {
@@ -141,6 +138,117 @@ html, body {
   font-weight: 600;
   width: 100%;
 }
+.editable-input {
+  width: 100%;
+  padding: 4px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.app-btn-primary,
+.app-btn-secondary,
+.app-btn-danger,
+.app-btn-success {
+  margin-right: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.app-btn-primary { background: #007bff; color: white; }
+.app-btn-secondary { background: #6c757d; color: white; }
+.app-btn-danger { background: #dc3545; color: white; }
+.app-btn-success { background: #28a745; color: white; }
+
+.table-row-selected {
+  background-color: #f1f3f5;
+}
+
+
+.vuelo-main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  padding: 2rem;
+  min-height: 100vh;
+  background-color: #f8f9fc;
+}
+
+.vuelo-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 2rem;
+}
+
+.vuelo-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 600px;
+}
+
+.vuelo-subtitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.vuelo-button-group {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.vuelo-btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.vuelo-btn:hover {
+  background-color: #1e40af;
+}
+
+.vuelo-loading {
+  text-align: center;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.vuelo-result-box {
+  margin-top: 2rem;
+  background-color: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.vuelo-result-title {
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  color: #111827;
+}
+
+.vuelo-result-content {
+  background-color: #e5e7eb;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9rem;
+}
 
 /* Contenedor flexible para resultados */
 .app-result-flex-container {
@@ -162,6 +270,98 @@ html, body {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #d0d8e0;
+}
+
+/* Layout general del formulario */
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  width: 100%;
+}
+
+/* Grupo de campos (label + input/textarea) */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label */
+.form-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+/* Textarea del mensaje */
+.form-textarea {
+  resize: none;
+  min-height: 80px;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* Contenedor horizontal para los checkboxes */
+.checkboxes-container {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: start;
+}
+
+/* Grupo de cada checkbox con su label */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Checkbox estilo nativo con margen mejorado */
+.checkbox-input {
+  transform: scale(1.1);
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+/* Botón principal */
+.form-submit-button {
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  width: 100%;
+  max-width: 220px;
+  align-self: center;
+}
+
+.form-submit-button:hover {
+  background-color: #1e40af;
+}
+
+.form-submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* Estilos para formularios */
@@ -242,7 +442,6 @@ html, body {
 
 /* Botón de envío de formulario */
 .app-form-submit-btn {
-  composes: app-btn-primary; /* Hereda estilos del botón primario */
   width: 100%;
   margin-top: 1.2rem;
 }

@@ -1,9 +1,6 @@
 import { useState } from "react";
-// NO IMPORTAR './globals.css' AQUÍ. Se importa globalmente en layout.tsx
 
-import { DestinoForm } from "./destinoForm"; // Asume que este componente también será estilizado
-
-// Definición del tipo Destino
+// Tipo de datos
 type Destino = {
   ciudad: string;
   origenVuelta: string;
@@ -18,29 +15,22 @@ type Destino = {
 
 interface DestinosProps {
   destinos: Destino[];
-  onSubmit: () => Promise<void>; // Función para recargar los destinos
+  onSubmit: () => Promise<void>;
 }
 
 export function Destinos({ destinos, onSubmit }: DestinosProps) {
-  console.log("Destinos recibidos en componente Destinos:", destinos); // <- Este log es clave
   const [modificar, setModificar] = useState(false);
-  // Usamos el objeto Destino completo para la fila seleccionada y para modificar
-  const [selectedDestino, setSelectedDestino] = useState<Destino | null>(null); 
+  const [selectedDestino, setSelectedDestino] = useState<Destino | null>(null);
 
-  // Maneja la selección de una fila
   const handleRowClick = (destino: Destino) => {
     setSelectedDestino(destino);
-    setModificar(false); // Asegurarse de que no esté en modo modificar al seleccionar una nueva fila
+    setModificar(false);
   };
 
-  // Activa el modo de modificación para el destino seleccionado
   const handleModificarClick = () => {
-    if (selectedDestino) {
-      setModificar(true);
-    }
+    if (selectedDestino) setModificar(true);
   };
 
-  // Maneja los cambios en los campos de input durante la modificación
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     campo: keyof Destino
@@ -54,96 +44,93 @@ export function Destinos({ destinos, onSubmit }: DestinosProps) {
     });
   };
 
-  // Envía los cambios de modificación al backend
   const modificacionFinal = async () => {
-    if (!selectedDestino) return; // No hacer nada si no hay destino seleccionado
-
+    if (!selectedDestino) return;
+    console.log("selectDestino ", selectedDestino);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/modificarDestinos`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedDestino),
-      });
+      const res = await fetch(
+        `/api/destino`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(selectedDestino),
+        }
+      );
       const data = await res.json();
 
-      console.log("Respuesta del servidor:", data);
       if (res.ok) {
-        console.log("Destino modificado correctamente");
-        onSubmit(); // Recargar la lista de destinos
+        onSubmit();
         setModificar(false);
-        setSelectedDestino(null); // Deseleccionar
+        setSelectedDestino(null);
       } else {
-        console.error("Error al modificar el destino:", data.mensaje || res.statusText);
-        // Aquí podrías mostrar un mensaje de error al usuario
+        console.error("Error al modificar:", data.mensaje || res.statusText);
       }
     } catch (error) {
-      console.error("Error al enviar la solicitud de modificación:", error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      console.error("Error al enviar la solicitud:", error);
     }
   };
 
-  // Elimina el destino seleccionado
   const eliminarFinal = async () => {
-    if (!selectedDestino) return; // No hacer nada si no hay destino seleccionado
+    if (!selectedDestino) return;
 
-    console.log("Eliminando ciudad: ", selectedDestino.ciudad);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/eliminarDestino`, {
+      const res = await fetch(`/api/destino`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ciudad: selectedDestino.ciudad }),
       });
       const data = await res.json();
-      console.log(data);
+
       if (res.ok) {
-        onSubmit(); // Recargar la lista de destinos
+        onSubmit();
         setModificar(false);
-        setSelectedDestino(null); // Deseleccionar
+        setSelectedDestino(null);
       } else {
-        console.error("Error al eliminar el destino:", data.mensaje || res.statusText);
-        // Aquí podrías mostrar un mensaje de error al usuario
+        console.error("Error al eliminar:", data.mensaje || res.statusText);
       }
     } catch (error) {
-      console.error("Error al enviar la solicitud de eliminación:", error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      console.error("Error al eliminar:", error);
     }
   };
 
-  // Si no hay destinos, muestra un mensaje
   if (destinos.length === 0) {
-    return <p className="app-text-loading">No hay destinos disponibles. ¡Crea uno!</p>;
+    return <p>No hay destinos disponibles. ¡Crea uno!</p>;
   }
 
   return (
-    <div className="table-data-wrapper"> {/* Nuevo nombre de clase */}
-      {/* Grupo de botones de acción para la tabla */}
-      <div className="table-actions-group"> {/* Nuevo nombre de clase */}
+    <div className="table-data-wrapper">
+      <div className="table-actions-group">
         <button
           onClick={() => {
-            setSelectedDestino(null); // Deseleccionar
-            setModificar(false); // Salir del modo modificar
+            setSelectedDestino(null);
+            setModificar(false);
           }}
-          className="app-btn-primary" // Nuevo nombre de clase
+          className="app-btn-primary"
         >
           Salir
         </button>
         <button
           onClick={handleModificarClick}
-          disabled={!selectedDestino || modificar} // Deshabilitado si no hay selección o ya está modificando
-          className="app-btn-secondary" // Nuevo nombre de clase
+          disabled={!selectedDestino || modificar}
+          className="app-btn-secondary"
         >
           Modificar
         </button>
         <button
           onClick={eliminarFinal}
-          disabled={!selectedDestino || modificar} // Deshabilitado si no hay selección o está modificando
-          className="app-btn-danger" // Nuevo nombre de clase
+          disabled={!selectedDestino || modificar}
+          className="app-btn-danger"
         >
           Eliminar
         </button>
+        {modificar && (
+          <button onClick={modificacionFinal} className="app-btn-success">
+            Guardar cambios
+          </button>
+        )}
       </div>
 
-      <table className="table-main"> {/* Nuevo nombre de clase */}
+      <table className="table-main">
         <thead>
           <tr>
             <th>Ciudad</th>
@@ -158,26 +145,97 @@ export function Destinos({ destinos, onSubmit }: DestinosProps) {
           </tr>
         </thead>
         <tbody>
-          {destinos.map((destino, index) => ( // Usamos index como key temporal
+          {destinos.map((destino, index) => (
             <tr
               key={index}
               onClick={() => handleRowClick(destino)}
-              className={selectedDestino?.ciudad === destino.ciudad ? "table-row-selected" : ""} 
+              className={
+                selectedDestino?.ciudad === destino.ciudad
+                  ? "table-row-selected"
+                  : ""
+              }
             >
-              {/* Columna de Ciudad: Siempre muestra el texto del destino */}
-              <td>
-                {destino.ciudad}
-              </td>
+              <td>{destino.ciudad}</td>
 
-              {/* Resto de las columnas: Siempre muestran el texto del destino */}
-              <td>{destino.origenVuelta}</td>
-              <td>{destino.maxDuracionIda}</td>
-              <td>{destino.maxDuracionVuelta}</td>
-              <td>{destino.horarioIdaEntre}</td>
-              <td>{destino.horarioIdaHasta}</td>
-              <td>{destino.horarioVueltaEntre}</td>
-              <td>{destino.horarioVueltaHasta}</td>
-              <td>{destino.stops}</td>
+              {modificar && selectedDestino?.ciudad === destino.ciudad ? (
+                <>
+                  <td>
+                    <input
+                      value={selectedDestino.origenVuelta}
+                      onChange={(e) => onChange(e, "origenVuelta")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.maxDuracionIda}
+                      onChange={(e) => onChange(e, "maxDuracionIda")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.maxDuracionVuelta}
+                      onChange={(e) => onChange(e, "maxDuracionVuelta")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.horarioIdaEntre}
+                      onChange={(e) => onChange(e, "horarioIdaEntre")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.horarioIdaHasta}
+                      onChange={(e) => onChange(e, "horarioIdaHasta")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.horarioVueltaEntre}
+                      onChange={(e) => onChange(e, "horarioVueltaEntre")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.horarioVueltaHasta}
+                      onChange={(e) => onChange(e, "horarioVueltaHasta")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={selectedDestino.stops}
+                      onChange={(e) => onChange(e, "stops")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="editable-input"
+                    />
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>{destino.origenVuelta}</td>
+                  <td>{destino.maxDuracionIda}</td>
+                  <td>{destino.maxDuracionVuelta}</td>
+                  <td>{destino.horarioIdaEntre}</td>
+                  <td>{destino.horarioIdaHasta}</td>
+                  <td>{destino.horarioVueltaEntre}</td>
+                  <td>{destino.horarioVueltaHasta}</td>
+                  <td>{destino.stops}</td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
