@@ -88,19 +88,22 @@ export async function scrapingVuelos(params: ScrapingVuelosParams & { context: B
     // === FECHAS ===
     // --- INTERACCIÓN CON FECHAS (MUY CRÍTICO) ---
     // Selector para el campo de salida (puedes verificar si es '24SEP' o 'DDMMM')
-    const salidaInput = page.getByPlaceholder('24SEP');
-    await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
-    await salidaInput.click(); // Click para activar el input y posible calendario/selector
-    await salidaInput.fill(departureDate);
-    await page.keyboard.press('Escape'); // Intenta cerrar cualquier calendario emergente que pueda interferir
-    await page.waitForTimeout(1000); // Espera que el input de fecha se asiente
-
-    const regresoInput = page.getByPlaceholder('24SEP');
-    await regresoInput.waitFor({ state: 'visible', timeout: 10000 });
-    await regresoInput.click();
-    await regresoInput.fill(returnDate);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(1000);
+        const salidaInput = page.getByPlaceholder('24SEP');
+        
+        if(await salidaInput.isVisible()){
+        await salidaInput.click(); // Click para activar el input y posible calendario/selector
+        await salidaInput.fill(departureDate);
+        await page.keyboard.press('Escape'); // Intenta cerrar cualquier calendario emergente que pueda interferir
+        await page.waitForTimeout(1000);
+        }
+ // Espera que el input de fecha se asiente
+        const regresoInput = page.getByPlaceholder('24SEP');
+        if(await regresoInput.isVisible()){
+        await regresoInput.click();
+        await regresoInput.fill(returnDate);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(1000);
+        }
     //*[@id="frm"]/div[1]/div[4]/div //*[@id="frm"]/div[1]/div[4]/div/div[1]/div[1]/span[1]/input[1]    //*[@id="meRAIlqldU"]/span/button   meRAIlqldU
     //     // === PASAJEROS ===   
     const adultosInput = page.locator("//input[@placeholder='1' and contains(@class,'input search-input')]");
