@@ -88,14 +88,14 @@ export async function scrapingVuelos(params: ScrapingVuelosParams & { context: B
     // === FECHAS ===
     // --- INTERACCIÓN CON FECHAS (MUY CRÍTICO) ---
     // Selector para el campo de salida (puedes verificar si es '24SEP' o 'DDMMM')
-    const salidaInput = page.getByRole('textbox', { name: '24SEP' });// Este placeholder puede cambiar, verifica el HTML
+    const salidaInput = page.getByPlaceholder('24SEP');
     await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
     await salidaInput.click(); // Click para activar el input y posible calendario/selector
     await salidaInput.fill(departureDate);
     await page.keyboard.press('Escape'); // Intenta cerrar cualquier calendario emergente que pueda interferir
     await page.waitForTimeout(1000); // Espera que el input de fecha se asiente
 
-    const regresoInput = page.getByRole('textbox', { name: '10OCT' });
+    const regresoInput = page.getByPlaceholder('24SEP');
     await regresoInput.waitFor({ state: 'visible', timeout: 10000 });
     await regresoInput.click();
     await regresoInput.fill(returnDate);
