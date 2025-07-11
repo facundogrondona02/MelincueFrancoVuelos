@@ -72,7 +72,6 @@ export async function scrapingVuelos(params: ScrapingVuelosParams & { context: B
     // === ORIGEN Y DESTINO ===
     await page.screenshot({ path: 'screenshot-error.png' });
 
-await page.waitForSelector('input[placeholder="24SEP"]', { timeout: 30000 });
 await page.screenshot({ path: 'screenshot-success.png' });
     await page.waitForLoadState('domcontentloaded'); // Asegura que el DOM está listo
     await page.waitForTimeout(1000); // Pequeña pau
