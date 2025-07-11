@@ -9,7 +9,8 @@ interface GetContextParams {
 }
 
 export async function getContextConSesionValida({ mail, password }: GetContextParams) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true ,
+  args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   let context: BrowserContext;
 
   try {

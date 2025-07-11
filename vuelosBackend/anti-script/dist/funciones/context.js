@@ -2,7 +2,8 @@ import { chromium } from "playwright";
 import { hacerLogin } from "./hacerLogin.js";
 const sessionPath = 'session.json';
 export async function getContextConSesionValida({ mail, password }) {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true,
+        args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     let context;
     try {
         const fs = await import('fs/promises');
