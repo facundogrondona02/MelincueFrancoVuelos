@@ -31,7 +31,6 @@ export async function scrapingVuelos(params) {
         // --- INTERACCIÓN CON FECHAS (MUY CRÍTICO) ---
         // Selector para el campo de salida (puedes verificar si es '24SEP' o 'DDMMM')
         const salidaInput = page.getByRole('textbox', { name: '24SEP' });
-        await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
         if (await salidaInput.isVisible()) {
             await salidaInput.click(); // Click para activar el input y posible calendario/selector
             await salidaInput.fill(departureDate);
