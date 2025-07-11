@@ -98,7 +98,7 @@ const salidaInput = page.locator('input.rz-inputtext[placeholder^="24"]'); // o 
         await page.waitForTimeout(1000);
         }
  // Espera que el input de fecha se asiente
-        const regresoInput = page.getByPlaceholder('24SEP');
+        const regresoInput = page.getByPlaceholder('10OCT');
         if(await regresoInput.isVisible()){
         await regresoInput.click();
         await regresoInput.fill(returnDate);
