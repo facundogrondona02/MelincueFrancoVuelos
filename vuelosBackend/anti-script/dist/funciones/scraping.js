@@ -30,7 +30,7 @@ export async function scrapingVuelos(params) {
         // === FECHAS ===
         // --- INTERACCIÓN CON FECHAS (MUY CRÍTICO) ---
         // Selector para el campo de salida (puedes verificar si es '24SEP' o 'DDMMM')
-        const salidaInput = page.locator('input.rz-inputtext[placeholder^="24"]'); // o usa startsWith con regex si cambian las fechas
+        const salidaInput = page.getByRole('textbox', { name: '24SEP' });
         await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
         if (await salidaInput.isVisible()) {
             await salidaInput.click(); // Click para activar el input y posible calendario/selector
@@ -39,7 +39,7 @@ export async function scrapingVuelos(params) {
             await page.waitForTimeout(1000);
         }
         // Espera que el input de fecha se asiente
-        const regresoInput = page.getByPlaceholder('10OCT');
+        const regresoInput = page.getByRole('textbox', { name: '10OCT' });
         if (await regresoInput.isVisible()) {
             await regresoInput.click();
             await regresoInput.fill(returnDate);

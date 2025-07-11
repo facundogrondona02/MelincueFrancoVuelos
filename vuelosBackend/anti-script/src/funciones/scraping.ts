@@ -72,7 +72,7 @@ export async function scrapingVuelos(params: ScrapingVuelosParams & { context: B
     // === ORIGEN Y DESTINO ===
     await page.screenshot({ path: 'screenshot-error.png' });
 
-await page.screenshot({ path: 'screenshot-success.png' });
+    await page.screenshot({ path: 'screenshot-success.png' });
     await page.waitForLoadState('domcontentloaded'); // Asegura que el DOM está listo
     await page.waitForTimeout(1000); // Pequeña pau
 
@@ -90,23 +90,23 @@ await page.screenshot({ path: 'screenshot-success.png' });
     // === FECHAS ===
     // --- INTERACCIÓN CON FECHAS (MUY CRÍTICO) ---
     // Selector para el campo de salida (puedes verificar si es '24SEP' o 'DDMMM')
-const salidaInput = page.locator('input.rz-inputtext[placeholder^="24"]'); // o usa startsWith con regex si cambian las fechas
-        await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
+    const salidaInput = page.getByRole('textbox', { name: '24SEP' });
+    await salidaInput.waitFor({ state: 'visible', timeout: 20000 });
 
-        if(await salidaInput.isVisible()){
-        await salidaInput.click(); // Click para activar el input y posible calendario/selector
-        await salidaInput.fill(departureDate);
-        await page.keyboard.press('Escape'); // Intenta cerrar cualquier calendario emergente que pueda interferir
-        await page.waitForTimeout(1000);
-        }
- // Espera que el input de fecha se asiente
-        const regresoInput = page.getByPlaceholder('10OCT');
-        if(await regresoInput.isVisible()){
-        await regresoInput.click();
-        await regresoInput.fill(returnDate);
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(1000);
-        }
+    if (await salidaInput.isVisible()) {
+      await salidaInput.click(); // Click para activar el input y posible calendario/selector
+      await salidaInput.fill(departureDate);
+      await page.keyboard.press('Escape'); // Intenta cerrar cualquier calendario emergente que pueda interferir
+      await page.waitForTimeout(1000);
+    }
+    // Espera que el input de fecha se asiente
+    const regresoInput = page.getByRole('textbox', { name: '10OCT' });
+    if (await regresoInput.isVisible()) {
+      await regresoInput.click();
+      await regresoInput.fill(returnDate);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(1000);
+    }
     //*[@id="frm"]/div[1]/div[4]/div //*[@id="frm"]/div[1]/div[4]/div/div[1]/div[1]/span[1]/input[1]    //*[@id="meRAIlqldU"]/span/button   meRAIlqldU
     //     // === PASAJEROS ===   
     const adultosInput = page.locator("//input[@placeholder='1' and contains(@class,'input search-input')]");
