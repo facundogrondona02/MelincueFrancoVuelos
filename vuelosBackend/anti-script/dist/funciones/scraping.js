@@ -11,12 +11,15 @@ export async function scrapingVuelos(params) {
         console.log(`Iniciando scraping para ${origenIda} a ${origenVuelta} el ${departureDate}.`);
         // 2. Navegar directamente a la URL de búsqueda (o de inicio) y esperar carga completa
         // Esto asegura que cada página comience desde un estado limpio y conocido.
-        await page.goto("https://aereos.sudameria.com/search", { waitUntil: "networkidle" });
+        await page.goto("https://aereos.sudameria.com/search", { timeout: 60000, waitUntil: "load" });
         // Espera adicional para que los elementos iniciales de la página de búsqueda estén presentes
         // === ORIGEN Y DESTINO ===
         await page.waitForLoadState('domcontentloaded'); // Asegura que el DOM está listo
         await page.waitForTimeout(1000); // Pequeña pau
+        await page.waitForSelector('input[placeholder="BUE"]', { timeout: 60000 });
+        // o con getByRole ya usas
         const origenInput = page.getByRole('textbox', { name: 'BUE' });
+        await origenInput.waitFor({ state: 'visible', timeout: 60000 });
         if (await origenInput.isVisible()) {
             await origenInput.fill(origenIda);
         }
