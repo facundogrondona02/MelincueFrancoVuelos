@@ -14,8 +14,6 @@ export async function scrapingVuelos(params) {
         await page.goto("https://aereos.sudameria.com/search", { waitUntil: "networkidle" });
         // Espera adicional para que los elementos iniciales de la página de búsqueda estén presentes
         // === ORIGEN Y DESTINO ===
-        await page.screenshot({ path: 'screenshot-error.png' });
-        await page.screenshot({ path: 'screenshot-success.png' });
         await page.waitForLoadState('domcontentloaded'); // Asegura que el DOM está listo
         await page.waitForTimeout(1000); // Pequeña pau
         const origenInput = page.getByRole('textbox', { name: 'BUE' });
