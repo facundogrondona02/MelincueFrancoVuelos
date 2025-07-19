@@ -376,7 +376,7 @@ Llegada: {{aeropuertoDestinoVuelta}} {{horarioLlegadaVuelta}} | {{fechaLlegadaVu
 """ 
         try:
              
-            res = openai.ChatCompletion.create(
+            res = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=4096

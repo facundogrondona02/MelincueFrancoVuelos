@@ -252,7 +252,7 @@ MENSAJE A PROCESAR:
     # y reglas que le proporcionamos directamente en el prompt.
     # El archivo json_fechas_completos.json es útil para TI como referencia o para un futuro
     # pre-entrenamiento si el modelo lo permite, pero no para este prompt directo.
-    res = openai.ChatCompletion.create(
+    res = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000

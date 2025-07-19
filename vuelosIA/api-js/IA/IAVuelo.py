@@ -237,10 +237,10 @@ Mensaje del cliente:
 \"\"\"{mensaje}\"\"\"
     """
     try:
-        res = openai.ChatCompletion.create(
+        res = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_completion_tokens=1000
+            max_tokens=1000
         )
         texto = res.choices[0].message.content
     except Exception as e:
