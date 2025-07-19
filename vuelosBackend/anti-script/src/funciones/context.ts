@@ -9,8 +9,10 @@ interface GetContextParams {
 }
 
 export async function getContextConSesionValida({ mail, password }: GetContextParams) {
-  const browser = await chromium.launch({ headless: true ,
-  args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage']
+  });
   let context: BrowserContext;
 
   try {
@@ -40,6 +42,11 @@ export async function getContextConSesionValida({ mail, password }: GetContextPa
     await page.close();
 
     if (storageUser?.logueado && !!storageUser?.token) {
+      await context.close();
+      context = await browser.newContext();
+      const pageLogin = await context.newPage();
+      await hacerLogin(pageLogin, mail, password);
+      await pageLogin.close();
       return { browser, context, estaLogueado: true };
     } else {
       // Sesión inválida: cerramos y hacemos login

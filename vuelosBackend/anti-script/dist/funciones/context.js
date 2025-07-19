@@ -2,8 +2,10 @@ import { chromium } from "playwright";
 import { hacerLogin } from "./hacerLogin.js";
 const sessionPath = 'session.json';
 export async function getContextConSesionValida({ mail, password }) {
-    const browser = await chromium.launch({ headless: true,
-        args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-dev-shm-usage']
+    });
     let context;
     try {
         const fs = await import('fs/promises');
@@ -30,6 +32,11 @@ export async function getContextConSesionValida({ mail, password }) {
         });
         await page.close();
         if ((storageUser === null || storageUser === void 0 ? void 0 : storageUser.logueado) && !!(storageUser === null || storageUser === void 0 ? void 0 : storageUser.token)) {
+            await context.close();
+            context = await browser.newContext();
+            const pageLogin = await context.newPage();
+            await hacerLogin(pageLogin, mail, password);
+            await pageLogin.close();
             return { browser, context, estaLogueado: true };
         }
         else {
