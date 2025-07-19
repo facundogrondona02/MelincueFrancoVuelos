@@ -11,8 +11,9 @@ export async function generarJsonDesdeMensaje(mensaje) {
     process.stderr.on("data", (data) => {
       console.error("Error en Python:", data.toString());
     });
-    console.log("Output completo del script Python:", result);
     process.on("close", (code) => {
+    console.log("Output completo del script Python:", result);
+
       if (code === 0) {
         try {
           // Extraer el JSON entre llaves (primer bloque válido)

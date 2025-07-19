@@ -2,11 +2,11 @@ import sys
 import json
 import re
 from rapidfuzz import process, fuzz
-from openai import OpenAI
+import  openai
 import os
+ 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=key)
 
 MESES = {
     "enero": "JAN", "febrero": "FEB", "marzo": "MAR", "abril": "APR",
@@ -237,7 +237,7 @@ Mensaje del cliente:
 \"\"\"{mensaje}\"\"\"
     """
     try:
-        res = client.chat.completions.create(
+        res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_completion_tokens=1000

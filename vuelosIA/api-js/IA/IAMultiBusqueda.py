@@ -7,8 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
 import json
 import os
-key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=key)
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 
 def generar_ambas_llamadas(mensaje):
@@ -251,7 +252,7 @@ MENSAJE A PROCESAR:
     # y reglas que le proporcionamos directamente en el prompt.
     # El archivo json_fechas_completos.json es útil para TI como referencia o para un futuro
     # pre-entrenamiento si el modelo lo permite, pero no para este prompt directo.
-    res = client.chat.completions.create(
+    res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000
@@ -465,7 +466,7 @@ MENSAJE DEL CLIENTE:
 
 """
 
-    res = client.chat.completions.create(
+    res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt2}],
             max_tokens=3000

@@ -3,11 +3,10 @@ import io
 import json
 from collections import defaultdict # Para agrupar vuelos
 import traceback # Importar traceback para imprimir la pila de llamadas
-from openai import OpenAI
+# from openai import OpenAI
 import os
-
-key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=key)
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # Configurar la salida estándar para UTF-8
@@ -377,7 +376,7 @@ Llegada: {{aeropuertoDestinoVuelta}} {{horarioLlegadaVuelta}} | {{fechaLlegadaVu
 """ 
         try:
              
-            res = client.chat.completions.create(
+            res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=4096
