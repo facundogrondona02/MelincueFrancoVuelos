@@ -22,7 +22,7 @@ export async function getContextConSesionValida({ mail, password }: GetContextPa
     // Si el archivo existe, probamos cargar la sesión
     context = await browser.newContext({ storageState: sessionPath });
     const page = await context.newPage();
-    await page.goto("https://www.google.com/", { waitUntil: "networkidle" });
+    await page.goto("https://aereos.sudameria.com/search", { waitUntil: "networkidle" });
 
     const storageUser = await page.evaluate(() => {
       try {
