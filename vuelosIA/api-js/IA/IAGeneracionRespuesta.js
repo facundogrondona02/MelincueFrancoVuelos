@@ -37,7 +37,7 @@ import { spawn } from "child_process";
 // Asumo que 'mensaje' es el array de objetos que quieres enviar al script de Python
 export async function generarRespuesta(dataResultados) { // Ajustar el tipo de 'mensaje' a Array<any> o al tipo de tu objeto vuelo
   return new Promise((resolve, reject) => {
-    const process = spawn("python", ["./IA/IAGeneracionRespuesta.py"]);
+    const process = spawn("python3", ["./IA/IAGeneracionRespuesta.py"]);
 
     let result = "";
     process.stdout.on("data", (data) => {

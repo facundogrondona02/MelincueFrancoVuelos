@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 
 export async function generarArrayMultibusqueda(mensaje) {
   return new Promise((resolve, reject) => {
-    const process = spawn("python", ["./IA/IAMultiBusqueda.py", mensaje]);
+    const process = spawn("python3", ["./IA/IAMultiBusqueda.py", mensaje]);
 
     let result = "";
     process.stdout.on("data", (data) => {
