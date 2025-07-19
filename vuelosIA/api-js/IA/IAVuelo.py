@@ -6,7 +6,6 @@ import  openai
 import os
  
 openai.api_key = os.getenv("OPENAI_API_KEY")
-print("API key:", openai.api_key)
 
 MESES = {
     "enero": "JAN", "febrero": "FEB", "marzo": "MAR", "abril": "APR",

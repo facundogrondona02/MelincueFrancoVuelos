@@ -4,8 +4,9 @@ import json
 from collections import defaultdict # Para agrupar vuelos
 import traceback # Importar traceback para imprimir la pila de llamadas
 # from openai import OpenAI
+import  openai
 import os
-import openai
+ 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 

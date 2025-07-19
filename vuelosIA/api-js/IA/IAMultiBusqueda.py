@@ -6,10 +6,10 @@ from rapidfuzz import process, fuzz
 from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
 import json
+import  openai
 import os
-import openai
+ 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
 
 
 def generar_ambas_llamadas(mensaje):
@@ -466,7 +466,7 @@ MENSAJE DEL CLIENTE:
 
 """
 
-    res = openai.ChatCompletion.create(
+    res = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt2}],
             max_tokens=3000
