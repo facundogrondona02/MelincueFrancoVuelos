@@ -1,11 +1,27 @@
 import sys
 import json
 import re
-from rapidfuzz import process, fuzz
-import  openai
 import os
- 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import pymysql.cursors # Importar PyMySQL para la conexión a la base de datos
+from rapidfuzz import process, fuzz # Asegúrate de que rapidfuzz esté importado
+import openai # Asegúrate de que openai esté importado
+from openai import OpenAI # Importar OpenAI client
+from google.cloud import storage
+import json
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+BUCKET_NAME = "codigo-iata-bucket"  # Cambialo por el nombre real
+IATA_FILE = "codigoIATA.json"
+DESTINOS_FILE = "destinos.json"
+
+storage_client = storage.Client()
+
+def read_json_from_bucket(file_name):
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(file_name)
+    content = blob.download_as_text()
+    return json.loads(content)
 
 MESES = {
     "enero": "JAN", "febrero": "FEB", "marzo": "MAR", "abril": "APR",
@@ -27,51 +43,87 @@ def extraer_fechas_desde_frase(frase):
         dia, mes = match.groups()
         if mes in MESES:
             dep = f"{int(dia):02d}{MESES[mes]}"
-            ret = f"{int(dia)+7:02d}{MESES[mes]}"
+            ret = f"{int(dia)+7:02d}{MESES[mes]}" # Asume una semana de duración
             return (dep, ret, "fechaExacta")
     return None, None, None
 
 def match_fecha_concreta(frase, ejemplos, umbral=85):
-    frases = [ej["frase"] for ej in ejemplos]
-    match = process.extractOne(frase, frases, scorer=fuzz.WRatio)
+    """
+    Busca una coincidencia de fecha concreta en la lista de ejemplos.
+    """
+    if not ejemplos:
+        return None
+    frases_ejemplo = [ej["frase"] for ej in ejemplos if "frase" in ej]
+    
+    # Asegurarse de que frases_ejemplo no esté vacío antes de llamar a process.extractOne
+    if not frases_ejemplo:
+        print("⚠️ No hay frases de ejemplo válidas para el matching de fechas.")
+        return None
+
+    match = process.extractOne(frase, frases_ejemplo, scorer=fuzz.WRatio)
     if match and match[1] >= umbral:
-        return ejemplos[match[2]]
+        # Encontrar el objeto original del ejemplo que coincidió
+        for ej in ejemplos:
+            if ej.get("frase") == match[0]:
+                return ej
     return None
 
-def obtener_codigo_iata(obj, ruta="data/codigoIATA.json"):
+
+
+def obtener_codigo_iata(obj):
     try:
-        with open(ruta, "r", encoding="utf-8") as f:
-            destinos = json.load(f)
-        ciudades = [d["ciudad"].lower().strip() for d in destinos]
-        dest_usuario = obj.get("origenVuelta", "").lower().strip()
-        match = process.extractOne(dest_usuario, ciudades, scorer=fuzz.WRatio)
-        if match and match[1] >= 70:
-            for d in destinos:
-                if d["ciudad"].lower().strip() == match[0]:
-                    obj["origenVuelta"] = d["codigoIATA"]
-                    break
+        codigos_iata_db = read_json_from_bucket(IATA_FILE)
     except Exception as e:
-        print("⚠️ Error cargando código IATA:", e)
+        print(f"⚠️ Error leyendo códigos IATA del bucket: {e}")
+        return obj
+
+    if not codigos_iata_db:
+        print("⚠️ No se encontraron códigos IATA en el bucket.")
+        return obj
+
+    ciudades = [d["ciudad"].lower().strip() for d in codigos_iata_db]
+    dest_usuario = obj.get("origenVuelta", "").lower().strip()
+
+    match = process.extractOne(dest_usuario, ciudades, scorer=fuzz.WRatio)
+
+    if match and match[1] >= 70:  # Umbral de coincidencia
+        for d in codigos_iata_db:
+            if d["ciudad"].lower().strip() == match[0]:
+                obj["origenVuelta"] = d["codigoIATA"]
+                break
+    else:
+        print(f"❌ No se encontró código IATA para '{dest_usuario}' con el umbral dado.")
+
     return obj
 
+
 def cargar_destinos():
-    try:    
-        with open("data/destinos.json", "r", encoding="utf-8") as f:
-            destinos = json.load(f)
-        return { d["origenVuelta"]: d for d in destinos }
+    try:
+        destinos_list = read_json_from_bucket(DESTINOS_FILE)
     except Exception as e:
-        print("⚠️ Error cargando destinos:", e)
+        print(f"⚠️ Error leyendo destinos del bucket: {e}")
         return {}
 
+    destinos = {}
+    for d in destinos_list:
+        key = d.get("origenVuelta")
+        if key:
+            destinos[key] = d
+    return destinos
+
+
 def completar_objetos_finales(base):
-    destinos = cargar_destinos()
+    destinos_config = cargar_destinos() # Ahora carga de la DB
     origen = base.get("origenVuelta", "")
-    config = destinos.get(origen, {
+    
+    # Obtener configuración específica para el origen o valores por defecto
+    config = destinos_config.get(origen, {
         "maxDuracionIda": "", "maxDuracionVuelta": "",
         "horarioIdaEntre": "", "horarioIdaHasta": "",
         "horarioVueltaEntre": "", "horarioVueltaHasta": "",
-        "stops": 0
+        "stops": "0" # Default a "0" o "Directo" si no se encuentra en la DB, para que coincida con VARCHAR
     })
+
     return {
         "mail": "franco@melincue.tur.ar",
         "password": "Francomase12!",
@@ -90,10 +142,13 @@ def completar_objetos_finales(base):
         "horarioIdaHasta": config.get("horarioIdaHasta", ""),
         "horarioVueltaEntre": config.get("horarioVueltaEntre", ""),
         "horarioVueltaHasta": config.get("horarioVueltaHasta", ""),
-        "stops": config.get("stops", 0)
+        "stops": config.get("stops", "0") # Asegúrate de que el tipo coincida con lo que esperas (VARCHAR)
     }
 
 def generar_json_desde_mensaje(mensaje):
+    # Asegúrate de que tu clave de API de OpenAI esté configurada en las variables de entorno de Cloud Run
+    # El cliente OpenAI ya está inicializado globalmente al principio del script.
+
     prompt = f"""
 Sos una IA que recibe mensajes de clientes y devuelve un objeto  con los datos del vuelo.
 
@@ -236,7 +291,7 @@ Mensaje del cliente:
 \"\"\"{mensaje}\"\"\"
     """
     try:
-        res = openai.chat.completions.create(
+        res = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1000
@@ -270,42 +325,16 @@ if __name__ == "__main__":
         sys.exit(1)
 
     frase = vuelo_raw.get("fraseFecha", "")
+    
+    # --- Lógica de carga de ejemplos para fechas desde un archivo JSON ---
     try:
+        # Usando la ruta directa que indicaste
         ejemplos = json.load(open("IA/ejemplos.json", "r", encoding="utf-8"))["ejemplos"]
     except Exception as e:
-        print("⚠️ Error cargando ejemplos.json:", e)
-        ejemplos = []
+        print(f"⚠️ Error cargando ejemplos.json: {e}")
+        ejemplos = [] # Si hay un error, inicializa ejemplos como una lista vacía
 
-    if es_fecha_rango_concreto(frase):
-        dep, ret, tipo = extraer_fechas_desde_frase(frase)
-    else:
-        matched = match_fecha_concreta(frase, ejemplos)
-        dep = matched.get("departureDate", "") if matched else ""
-        ret = matched.get("returnDate", "") if matched else ""
-        tipo = matched.get("tipoFecha", "") if matched else ""
-
-    vuelo_raw["departureDate"] = dep
-    vuelo_raw["returnDate"] = ret
-    vuelo_raw["tipoFecha"] = tipo
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("❗ Uso: python procesar_mensaje.py \"Tu mensaje\"")
-        sys.exit(1)
-
-    mensaje = sys.argv[1]
-    vuelo_raw = generar_json_desde_mensaje(mensaje)
-
-    if not vuelo_raw:
-        print("❌ No se pudo generar un objeto base desde la IA.")
-        sys.exit(1)
-
-    frase = vuelo_raw.get("fraseFecha", "")
-    try:
-        ejemplos = json.load(open("IA/ejemplos.json", "r", encoding="utf-8"))["ejemplos"]
-    except Exception as e:
-        print("⚠️ Error cargando ejemplos.json:", e)
-        ejemplos = []
+    dep, ret, tipo = "", "", "" # Inicializar para evitar errores si no se asignan
 
     if es_fecha_rango_concreto(frase):
         dep, ret, tipo = extraer_fechas_desde_frase(frase)

@@ -1,21 +1,51 @@
 import express, { json } from 'express';
-// Eliminar estas importaciones, ya no se usan para archivos locales
-// import fs from 'fs';
-// const fsPromises = fs.promises;
-// import path from 'path';
+import { GoogleAuth } from 'google-auth-library'; // <-- ¡IMPORTAR ESTO!
 import { getContextConSesionValida } from './funciones/context.js';
 import { scrapingVuelos } from './funciones/scraping.js';
 import cors from 'cors';
+import pLimit from 'p-limit';
 const app = express();
-const PORT = 3030;
+const PORT = process.env.PORT || 3030; // Asegúrate de que esto esté así
 app.use(cors());
 app.use(json());
 app.use(express.json()); // 👈 necesario para que req.body funcione
-const IA_API_BASE_URL = 'http://ia-api:3020/api';
-// POST / RECIBE OBJETOS PARA HACER SCRAPING
+// Variable de entorno para la URL de la IA API.
+// Asegúrate de que esta variable esté configurada en tu servicio 'francofinal-backend' en Cloud Run
+const IA_API_BASE_URL = process.env.IA_API_BASE_URL || 'http://ia-api:3020/api';
+// ----------------------------------------------------
+// FUNCIÓN AUXILIAR PARA OBTENER LOS HEADERS DE AUTENTICACIÓN
+// ----------------------------------------------------
+/**
+ * Función auxiliar para obtener los headers de autenticación con un ID Token de Google.
+ * Esto es necesario para invocar servicios de Cloud Run que requieren autenticación.
+ * Solo se activa en entorno de producción y para URLs HTTPS.
+ * @param targetAudience La URL del servicio de Cloud Run al que se quiere llamar.
+ * @returns Un objeto de headers con la propiedad 'Authorization' si se genera un token, o un objeto vacío.
+ */
+async function getAuthHeaders(targetAudience) {
+    if (process.env.NODE_ENV === 'production' && targetAudience.startsWith('https://')) {
+        try {
+            const auth = new GoogleAuth();
+            const client = await auth.getIdTokenClient(targetAudience);
+            const resHeaders = await client.getRequestHeaders();
+            const authHeader = resHeaders.get('Authorization');
+            if (authHeader) {
+                return { 'Authorization': authHeader };
+            }
+        }
+        catch (error) {
+            console.error('❌ Error al generar los headers de autenticación para:', targetAudience, error);
+            return {}; // Retorna un objeto vacío en caso de error
+        }
+    }
+    return {}; // Retorna un objeto vacío si no se necesita autenticación o no se puede obtener el token
+}
+// ----------------------------------------------------
+// POST / RECIBE OBJETOS PARA HACER SCRAPING (Este no necesita auth para IA_API, solo usa funciones locales)
 app.post('/evento', async (req, res) => {
     const objetoViaje = req.body.data;
     console.log("Tipo de datos recibidos:", typeof req.body);
+    console.log("OBJETO COMPLETO RECIBIDO=> ", objetoViaje);
     try {
         const resultados = await haciendoScraping(objetoViaje);
         await res.status(200).json({ ok: true, resultados });
@@ -31,9 +61,13 @@ app.post('/evento', async (req, res) => {
 });
 // GET / MOSTRAR DESTINOS
 app.get('/destinos', async (req, res) => {
-    console.log("ENTRAMOS ACA????????????");
+    console.log("ENTRAMOS ACA EN BACKEND/DESTINOS"); // <-- Mensaje de log para depuración
     try {
-        const respuestaApi = await llamandoDestinos();
+        // Obtener headers de autenticación para la IA API
+        let headers = { "Content-Type": "application/json" };
+        const authHeaders = await getAuthHeaders(IA_API_BASE_URL); // <-- AUTENTICACIÓN
+        headers = Object.assign(Object.assign({}, headers), authHeaders);
+        const respuestaApi = await llamandoDestinos(headers); // Pasar los headers a la función llamandoDestinos
         if (respuestaApi && respuestaApi.ok && Array.isArray(respuestaApi.destinos)) {
             return res.status(200).json({ ok: true, destinos: respuestaApi.destinos });
         }
@@ -52,9 +86,12 @@ app.put('/modificarDestinos', async (req, res) => {
     const nuevoDestino = req.body;
     console.log("desde la backend (modificar)", nuevoDestino);
     try {
+        let headers = { "Content-Type": "application/json" };
+        const authHeaders = await getAuthHeaders(IA_API_BASE_URL); // <-- AUTENTICACIÓN
+        headers = Object.assign(Object.assign({}, headers), authHeaders);
         const response = await fetch(`${IA_API_BASE_URL}/destinos/${nuevoDestino.ciudad}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: headers, // <-- USAR HEADERS AUTENTICADOS
             body: JSON.stringify(nuevoDestino),
         });
         if (!response.ok) {
@@ -74,9 +111,12 @@ app.post('/crearDestino', async (req, res) => {
     const nuevoDestino = req.body;
     console.log("nuevo destino (crear)", nuevoDestino);
     try {
+        let headers = { "Content-Type": "application/json" };
+        const authHeaders = await getAuthHeaders(IA_API_BASE_URL); // <-- AUTENTICACIÓN
+        headers = Object.assign(Object.assign({}, headers), authHeaders);
         const response = await fetch(`${IA_API_BASE_URL}/destinos`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: headers, // <-- USAR HEADERS AUTENTICADOS
             body: JSON.stringify(nuevoDestino),
         });
         if (!response.ok) {
@@ -89,7 +129,7 @@ app.post('/crearDestino', async (req, res) => {
             result = await response.json();
         }
         else {
-            const text = await response.text(); // muestra HTML si hubo error
+            const text = await response.text();
             console.error("La IA API devolvió una respuesta no JSON:", text);
             throw new Error("Respuesta no válida de IA API");
         }
@@ -102,12 +142,15 @@ app.post('/crearDestino', async (req, res) => {
 });
 // DELETE / ELIMINAR DESTINOS
 app.delete('/eliminarDestino', async (req, res) => {
-    const ciudadEliminar = req.body; // Asumiendo que el body es { ciudad: "NombreCiudad" }
+    const ciudadEliminar = req.body;
     console.log("desde el backend (eliminar)", ciudadEliminar);
     try {
+        let headers = { "Content-Type": "application/json" };
+        const authHeaders = await getAuthHeaders(IA_API_BASE_URL); // <-- AUTENTICACIÓN
+        headers = Object.assign(Object.assign({}, headers), authHeaders);
         const response = await fetch(`${IA_API_BASE_URL}/destinos/${ciudadEliminar.ciudad}`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: headers, // <-- USAR HEADERS AUTENTICADOS
             // DELETE requests typically don't have a body, but if your IA API expects it, uncomment:
             // body: JSON.stringify(ciudadEliminar),
         });
@@ -124,12 +167,13 @@ app.delete('/eliminarDestino', async (req, res) => {
     }
 });
 // Levantar servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`✅ Anti-script escuschando en http://backend:${PORT}`);
 });
-// Función principal de scraping
+server.setTimeout(600000);
+// ... (resto de tu código)
 const haciendoScraping = async (objetoViaje) => {
-    let browser; // podés tipar mejor si usás types de Playwright
+    let browser;
     let context;
     const respuestas = [];
     console.log("ARRIBA DEL ONEJTO");
@@ -142,14 +186,17 @@ const haciendoScraping = async (objetoViaje) => {
         console.log("ACA LLEGA????");
         browser = result.browser;
         context = result.context;
+        // Define el límite de concurrencia.
+        // Empieza con un número bajo para probar, por ejemplo, 2 o 3.
+        // Luego, puedes aumentar gradualmente.
+        const concurrencyLimit = pLimit(15); // Permite 3 operaciones de scrapingVuelos concurrentes
         const scrapingPromises = objetoViaje.map((vueloOriginal) => {
             var _a, _b;
             const vuelo = Object.assign(Object.assign({}, vueloOriginal), { carryon: (_a = vueloOriginal.carryon) !== null && _a !== void 0 ? _a : true, bodega: (_b = vueloOriginal.bodega) !== null && _b !== void 0 ? _b : false, context });
-            return scrapingVuelos(vuelo);
+            return concurrencyLimit(() => scrapingVuelos(vuelo));
         });
-        const scrapingResults = await Promise.all(scrapingPromises);
-        console.log("RESUULTADOOSOOSOSOS ", scrapingResults);
-        respuestas.push(...scrapingResults.filter((r) => r !== undefined));
+        const resultados = await Promise.all(scrapingPromises);
+        respuestas.push(...resultados.filter(r => r !== undefined));
         console.log("✅ Resultados de scraping:", respuestas);
         return respuestas;
     }
@@ -160,27 +207,11 @@ const haciendoScraping = async (objetoViaje) => {
         }
     }
 };
-// const fetching = async (data: any) => {
-//   await fetch('http://localhost:3020/mensajeFormateado', {
-//     method: "POST",
-//     body: JSON.stringify({ data }),
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//   })
-//     .then((res) => res.json())
-//     .then((data) => {
-//       console.log("Respuesta del servidor:", data);
-//     })
-//     .catch((error) => {
-//       console.error("Error al enviar el formulario:", error);
-//     });
-// }
-const llamandoDestinos = async () => {
+const llamandoDestinos = async (headers) => {
     try {
         const response = await fetch(`${IA_API_BASE_URL}/destinos`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            headers: headers, // <-- USAR HEADERS AUTENTICADOS
         });
         if (!response.ok) {
             const errorText = await response.text();

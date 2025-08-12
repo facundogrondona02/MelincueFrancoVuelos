@@ -1,46 +1,79 @@
-// app/api/mensaje/route.ts
-import { NextResponse } from 'next/server'
+// pages/api/mensaje/route.ts (o index.js en /mensaje)
+import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+const IA_API = process.env.IA_API_URL || 'http://localhost:5000'; // tu backend de IA
+
+export async function POST(req: Request) {
   try {
-    const data = await request.json()
+    const body = await req.json();
+    console.log("body ", body)
+    const data = {
+      mensaje: body.mensaje,
+      multibusqueda: body.multibusqueda,
+      carryon: body.carryon,
+      bodega: body.bodega,
+    };
+console.log("DATA " , data)
+    const authHeaders = {
+      Authorization: req.headers.get('authorization') || '',
+    };
 
-    const response = await fetch('http://ia-api:3020/mensaje', {
+    const response = await fetch(`${IA_API}/mensaje`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
       body: JSON.stringify(data),
-    })
+    });
 
-    const resData = await response.json()
+    const rawText = await response.text(); // primero como texto
+    let resData;
 
-    console.log("Retornando al frontend:", resData)
-    console.log("Retornando al status:", resData.status)
-    console.log("Retornando al data:", resData.data)
-
-    if (resData.status === 'recibido') {
-      console.log("entramos para retornar")
-      return NextResponse.json(
-        { ok: true, result: resData.data },
-        { status: 200 }
-      );
-    } else {
-      console.log("entramos para no retornar")
+    try {
+      resData = JSON.parse(rawText);
+    } catch (jsonErr) {
+      console.error('❌ Respuesta del backend IA no es JSON válido:', rawText);
       return NextResponse.json(
         {
           ok: false,
-          error: 'El scraping falló',
-          details: resData.mensaje,
+          error: 'Respuesta inválida del backend IA',
+          details: rawText,
         },
-        { status: 400 }
-      )
+        { status: response.status || 502 }
+      );
     }
-  } catch (error) {
-    console.error('Error en la API interna:', error)
+
+    if (response.ok && resData.status === 'recibido') {
+      return NextResponse.json(
+        {
+          ok: true,
+          result: resData.data,
+        },
+        { status: 200 }
+      );
+    } else {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            resData.message ||
+            resData.error ||
+            'El scraping o el análisis falló',
+          details: resData.details || resData.mensaje || rawText,
+        },
+        { status: response.status || 500 }
+      );
+    }
+  } catch (err: any) {
+    console.error('❌ Error general en /api/mensaje:', err);
     return NextResponse.json(
-      { ok: false, error: 'Error interno del servidor' },
+      {
+        ok: false,
+        error: 'Error interno en el endpoint /mensaje',
+        details: err.message || 'Sin detalles',
+      },
       { status: 500 }
-    )
+    );
   }
 }

@@ -1,0 +1,14 @@
+[
+  {
+    "mensaje": "me quiero ir la primera de enero a miami",
+    "multibusqueda": false,
+    "carryon": true,
+    "bodega": false
+  },
+  {
+    "mensaje": "me quiero ir 7 noches a cancun en enero, somos dos adultos",
+    "multibusqueda": true,
+    "carryon": true,
+    "bodega": false
+  }
+]

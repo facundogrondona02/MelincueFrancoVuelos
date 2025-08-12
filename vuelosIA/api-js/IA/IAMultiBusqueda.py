@@ -1,28 +1,38 @@
 import sys
 import json
-import json
 import re
+import os
+import pymysql.cursors # Importar PyMySQL para la conexión a la base de datos
 from rapidfuzz import process, fuzz
 from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
+import openai
+from google.cloud import storage
 import json
-import  openai
-import os
- 
+
+storage_client = storage.Client()
+BUCKET_NAME = 'codigo-iata-bucket'
+DESTINOS_FILE = 'destinos.json'
+IATA_FILE = 'codigoIATA.json'
+
+# Configuración del cliente OpenAI (usando variable de entorno por seguridad)
 openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=openai.api_key) # Inicializar el cliente OpenAI
 
 
-def generar_ambas_llamadas(mensaje):
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_fechas = executor.submit(generar_multi_busqueda, mensaje)
-        future_parametros = executor.submit(generar_todo_lo_demas, mensaje)
-        fechas = future_fechas.result()
-        parametros = future_parametros.result()
-    return fechas, parametros
-import json
-# Si la función limpiar_json no está definida en este archivo, asegúrate de importarla
-# from .utils import limpiar_json 
-# (o donde sea que la tengas definida)
+
+def read_json_from_bucket(file_name):
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(file_name)
+    content = blob.download_as_text()
+    return json.loads(content)
+
+def write_json_to_bucket(file_name, data):
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(file_name)
+    blob.upload_from_string(json.dumps(data, indent=2), content_type='application/json')
+
+
 def limpiar_mensaje_usuario(mensaje):
     """
     Normaliza el mensaje del usuario para reducir la sensibilidad del LLM
@@ -35,7 +45,6 @@ def limpiar_mensaje_usuario(mensaje):
     # Elimina espacios al inicio y al final
     mensaje = mensaje.strip()
     return mensaje
-
 
 def generar_multi_busqueda(mensaje):
     mensaje_procesado = limpiar_mensaje_usuario(mensaje)
@@ -103,7 +112,7 @@ JSON de salida (SOLO JSON):
 ]
 CUALQUIER FECHA DEL MES CON DURACIÓN FIJA (PRIORIDAD BAJA):
 
-Si solo se menciona un mes general y una duración (ej. "7 noches en mayo", "5 días en diciembre", "3 noches en enero",  "8 días en agosto", "11 dias en noviembre"), y no hay un rango de días de salida o fecha de regreso explícita.
+Si solo se menciona un mes general y una duración (ej. "7 noches en mayo", "5 días en diciembre", "3 noches en enero",   "8 días en agosto", "11 dias en noviembre"), y no hay un rango de días de salida o fecha de regreso explícita.
 
 DEBES generar TODAS LAS COMBINACIONES POSIBLES de salida, día por día, desde el día 01 del mes hasta el ÚLTIMO DÍA NATURAL de ese mes.
 
@@ -247,12 +256,7 @@ La respuesta debe ser SOLO EL ARRAY JSON PURO. NI UNA LETRA MÁS.
 MENSAJE A PROCESAR:
 {mensaje_procesado}
 """
-    # La carga de un archivo JSON 'ejemplos_fechas_completos' no es necesaria aquí,
-    # ya que la IA no lo "lee" como un archivo. Su conocimiento se basa en los ejemplos
-    # y reglas que le proporcionamos directamente en el prompt.
-    # El archivo json_fechas_completos.json es útil para TI como referencia o para un futuro
-    # pre-entrenamiento si el modelo lo permite, pero no para este prompt directo.
-    res = openai.chat.completions.create(
+    res = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000
@@ -260,8 +264,6 @@ MENSAJE A PROCESAR:
     texto = res.choices[0].message.content
 
     try:
-        # Asegúrate de que limpiar_json sea robusto y maneje casos donde la IA podría
-        # añadir texto antes o después del JSON, o generar un JSON malformado.
         limpio = limpiar_json(texto)
         fechas = json.loads(limpio)
         if not fechas:
@@ -269,8 +271,8 @@ MENSAJE A PROCESAR:
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON de la respuesta de la IA: {e}")
         print(f"Contenido problemático recibido: {texto}")
-        fechas = []  # Devolver una lista vacía en caso de error de parseo.
-    except ValueError as e: # Captura el error de array vacío
+        fechas = []
+    except ValueError as e:
         print(f"Error de validación del JSON: {e}")
         print(f"Contenido recibido: {texto}")
         fechas = []
@@ -279,18 +281,8 @@ MENSAJE A PROCESAR:
         print(f"Contenido recibido: {texto}")
         fechas = []
     return fechas
-# NOTA: La función 'limpiar_json' debe estar definida en algún lugar y ser capaz de
-# extraer el JSON puro de la cadena 'content' que devuelve la IA.
-# Un ejemplo básico de limpiar_json podría ser:
-# def limpiar_json(text):
-#     # Busca el primer '[' y el último ']' para intentar extraer el JSON
-#     start = text.find('[')
-#     end = text.rfind(']')
-#     if start != -1 and end != -1 and start < end:
-#         return text[start : end + 1]
-#     return "[]" # Si no encuentra un JSON válido, retorna un array vacío.
+
 def generar_todo_lo_demas(mensaje):
-       
     prompt2= f"""
 Sos una IA que recibe mensajes en español y debe devolver solo un único objeto JSON con las siguientes claves exactas:
 
@@ -302,15 +294,15 @@ Sos una IA que recibe mensajes en español y debe devolver solo un único objeto
 
 Reglas:
 
-IMPORTANTE:  
-- Cada vez que se mencione "mi esposa", "mi marido", "mi pareja", "mi mujer", etc., sumá 1 adulto adicional.  
-- No devuelvas arrays ni listas: SOLO un único objeto JSON con los campos requeridos.  
+IMPORTANTE: 
+- Cada vez que se mencione "mi esposa", "mi marido", "mi pareja", "mi mujer", etc., sumá 1 adulto adicional. 
+- No devuelvas arrays ni listas: SOLO un único objeto JSON con los campos requeridos. 
 - Si se mencionan “mis hijos”, “los chicos”, “mis nenes” y **no hay edad explícita**, asumí que son `children` (entre 3 y 11 años).
 - Nunca asumas que un hijo es adulto a menos que se indique su edad (mayor a 12) o se diga explícitamente que es adolescente o mayor.
 
-- Frases como "mi esposa", "mi marido", "mi pareja", "mi amigo","mi mujer", etc., suman 1 adulto cada una.  
-- Menciones de “mi hijo”, “mis hijos”, “los nenes”, “mi bebé” indican niños o infantes según contexto.  
-- Completar todos los campos obligatorios, ningún campo vacío o nulo.  
+- Frases como "mi esposa", "mi marido", "mi pareja", "mi amigo","mi mujer", etc., suman 1 adulto cada una. 
+- Menciones de “mi hijo”, “mis hijos”, “los nenes”, “mi bebé” indican niños o infantes según contexto. 
+- Completar todos los campos obligatorios, ningún campo vacío o nulo. 
 - Somos 2 personas, son 2 adultos. Siempre.
 =======================
 1. INTERPRETACIÓN ROBUSTA DE PASAJEROS
@@ -323,7 +315,7 @@ IMPORTANTE:
 
 ✈️ CLAVES:
 - Mencioná como adultos a cada persona nombrada con palabras como: "mi mamá", "mi papá", "mi esposa", "mi pareja", "mi amigo", "mi hijo de 20", etc.
-- Detectá edades explícitas:  
+- Detectá edades explícitas:   
   - Si dice “tiene 23 años”, o “mi hijo de 14” → contalo como **adulto**
   - Si dice “mi hija de 8” → contalo como **niño**
   - Si dice “mi bebé”, “de meses”, o edad menor a 2 → **infante**
@@ -333,10 +325,10 @@ IMPORTANTE:
 - Si es ambiguo, asumí la interpretación más lógica y coherente con la edad o contexto.
 - Cuando el mensaje dice "viajo a" o "quiero ir a" tenes que contar a la persona que escribio el mensaje como un adulto
 
-IMPORTANTE:  
-- Cada vez que se mencione "mi esposa", "mi marido", "mi pareja", "mi mujer", etc., sumá 1 adulto adicional.  
-- Nunca devolvés valores cero para adultos si el mensaje indica "me quiero ir" o frases similares; al menos 1 adulto siempre debe estar presente.  
-- No devuelvas arrays ni listas: SOLO un único objeto JSON con los campos requeridos.  
+IMPORTANTE: 
+- Cada vez que se mencione "mi esposa", "mi marido", "mi pareja", "mi mujer", etc., sumá 1 adulto adicional. 
+- Nunca devolvés valores cero para adultos si el mensaje indica "me quiero ir" o frases similares; al menos 1 adulto siempre debe estar presente. 
+- No devuelvas arrays ni listas: SOLO un único objeto JSON con los campos requeridos. 
 - Si se mencionan “mis hijos”, “los chicos”, “mis nenes” y **no hay edad explícita**, asumí que son `children` (entre 3 y 11 años).
 - Nunca asumas que un hijo es adulto a menos que se indique su edad (mayor a 12) o se diga explícitamente que es adolescente o mayor.
 - 🔒 Si no se especifica edad, asumí por defecto que los “hijos”, “nenes”, “chicos”, etc. tienen entre 3 y 11 años → contalos como children.
@@ -348,60 +340,60 @@ se diga explícitamente que es adolescente, mayor o tiene más de 12 años
 
 👤 Ejemplos:
 
-| Mensaje                                                            | adults | children | infants |
+| Mensaje                                                             | adults | children | infants |
 | ------------------------------------------------------------------ | ------ | -------- | ------- |
-| "viajo con mi esposa y mis 2 hijos"                                | 2      | 2        | 0       |
-| "yo, mi mamá y mis dos hijos, uno es menor y otro de 23"           | 3      | 1        | 0       |
-| "nos vamos mi señora, mi hijo de 10 y el bebé"                     | 2      | 1        | 1       |
-| "viajamos mi hija de 14 y yo"                                      | 2      | 0        | 0       |
-| "voy con mi esposa, mi hijo de 2 años y el bebé"                   | 2      | 1        | 1       |
-| "me voy solo"                                                      | 1      | 0        | 0       |
-| "me quiero ir ..."                                                 | 1      | 0        | 0       |
-| "me quiero ir con mi esposa"                                       | 2      | 0        | 0       |
-| "me quiero ir con mi hijo"                                         | 1      | 1        | 0       |
-| "me quiero ir con mi hijo de 22"                                   | 2      | 0        | 0       |
-| "me quiero ir con mi hijo de 22 y mi mamá"                         | 3      | 0        | 0       |
-| "quiero un viaje para 2 mayores y un menor"                        | 2      | 1        | 0       |
-| "quiero ir a cancun 2 semanas"                                     | 1      | 0        | 0       |
-| "me quiero ir con mi mujer y 2 hijos"                              | 2      | 2        | 0       |
-| "me quiero ir con mi mujer y 2 hijos, uno de 3 y otro de 10"       | 2      | 1        | 1       |
-| "me quiero ir con mi mamá y mi esposa"                             | 3      | 0        | 0       |
-| "viajamos con mi esposa, nuestros 3 hijos y el bebé"               | 2      | 3        | 1       |
-| "somos 4 adultos, 2 chicos y un bebé"                              | 4      | 2        | 1       |
-| "vamos mi pareja, mis dos hijos de 5 y 8 años"                     | 2      | 2        | 0       |
-| "voy con mis hijos, uno de 1 año y otro de 12"                     | 2      | 0        | 1       |
-| "vamos 2 adultos y un nene de 7"                                   | 2      | 1        | 0       |
-| "yo, mi hermana y nuestras 3 hijas"                                | 2      | 3        | 0       |
-| "mi esposa, yo, mi hija de 6 y mi bebé de 6 meses"                 | 2      | 1        | 1       |
-| "nos vamos con mi pareja y nuestros dos nenes de 4 y 6"            | 2      | 2        | 0       |
-| "viajo con mi esposa y mi hijo de 1 año y medio"                   | 2      | 0        | 1       |
-| "somos dos adultos, un chico de 10 y una nena de 8"                | 2      | 2        | 0       |
-| "me quiero ir con mi novia y su hijo de 5 años"                    | 2      | 1        | 0       |
-| "viajamos yo, mi mujer, nuestro hijo de 2 y nuestra beba"          | 2      | 1        | 1       |
-| "voy con mis tres hijos, dos son chicos y uno es bebé"             | 1      | 2        | 1       |
-| "vamos 3 adultos y una nena de 9"                                  | 3      | 1        | 0       |
-| "nos vamos 2 adultos con gemelos de 3 años"                        | 2      | 2        | 0       |
-| "viajamos mi esposo, yo y nuestros mellizos bebés"                 | 2      | 0        | 2       |
-| "soy yo con mi hija de 11 y mi hijo de 13"                         | 2      | 1        | 0       |
-| "voy con mi papá y mi hijo de 4 años"                              | 2      | 1        | 0       |
-| "viajo con mi hermana, mi cuñado y su hijo de 6"                   | 3      | 1        | 0       |
-| "me quiero ir con mi esposa, mis dos hijos adolescentes y la beba" | 2      | 2        | 1       |
-| "vamos 2 adultos y un hijo de 2 años y otro de 1"                  | 2      | 1        | 1       |
-| "mi mujer, mi hija de 10, mi hijo de 7 y yo"                       | 2      | 2        | 0       |
+| "viajo con mi esposa y mis 2 hijos"                               | 2      | 2        | 0       |
+| "yo, mi mamá y mis dos hijos, uno es menor y otro de 23"          | 3      | 1        | 0       |
+| "nos vamos mi señora, mi hijo de 10 y el bebé"                    | 2      | 1        | 1       |
+| "viajamos mi hija de 14 y yo"                                     | 2      | 0        | 0       |
+| "voy con mi esposa, mi hijo de 2 años y el bebé"                  | 2      | 1        | 1       |
+| "me voy solo"                                                     | 1      | 0        | 0       |
+| "me quiero ir ..."                                                | 1      | 0        | 0       |
+| "me quiero ir con mi esposa"                                      | 2      | 0        | 0       |
+| "me quiero ir con mi hijo"                                        | 1      | 1        | 0       |
+| "me quiero ir con mi hijo de 22"                                  | 2      | 0        | 0       |
+| "me quiero ir con mi hijo de 22 y mi mamá"                        | 3      | 0        | 0       |
+| "quiero un viaje para 2 mayores y un menor"                       | 2      | 1        | 0       |
+| "quiero ir a cancun 2 semanas"                                    | 1      | 0        | 0       |
+| "me quiero ir con mi mujer y 2 hijos"                             | 2      | 2        | 0       |
+| "me quiero ir con mi mujer y 2 hijos, uno de 3 y otro de 10"      | 2      | 1        | 1       |
+| "me quiero ir con mi mamá y mi esposa"                            | 3      | 0        | 0       |
+| "viajamos con mi esposa, nuestros 3 hijos y el bebé"              | 2      | 3        | 1       |
+| "somos 4 adultos, 2 chicos y un bebé"                             | 4      | 2        | 1       |
+| "vamos mi pareja, mis dos hijos de 5 y 8 años"                    | 2      | 2        | 0       |
+| "voy con mis hijos, uno de 1 año y otro de 12"                    | 2      | 0        | 1       |
+| "vamos 2 adultos y un nene de 7"                                  | 2      | 1        | 0       |
+| "yo, mi hermana y nuestras 3 hijas"                               | 2      | 3        | 0       |
+| "mi esposa, yo, mi hija de 6 y mi bebé de 6 meses"                | 2      | 1        | 1       |
+| "nos vamos con mi pareja y nuestros dos nenes de 4 y 6"           | 2      | 2        | 0       |
+| "viajo con mi esposa y mi hijo de 1 año y medio"                  | 2      | 0        | 1       |
+| "somos dos adultos, un chico de 10 y una nena de 8"               | 2      | 2        | 0       |
+| "me quiero ir con mi novia y su hijo de 5 años"                   | 2      | 1        | 0       |
+| "viajamos yo, mi mujer, nuestro hijo de 2 y nuestra beba"         | 2      | 1        | 1       |
+| "voy con mis tres hijos, dos son chicos y uno es bebé"            | 1      | 2        | 1       |
+| "vamos 3 adultos y una nena de 9"                                 | 3      | 1        | 0       |
+| "nos vamos 2 adultos con gemelos de 3 años"                       | 2      | 2        | 0       |
+| "viajamos mi esposo, yo y nuestros mellizos bebés"                | 2      | 0        | 2       |
+| "soy yo con mi hija de 11 y mi hijo de 13"                        | 2      | 1        | 0       |
+| "voy con mi papá y mi hijo de 4 años"                             | 2      | 1        | 0       |
+| "viajo con mi hermana, mi cuñado y su hijo de 6"                  | 3      | 1        | 0       |
+| "me quiero ir con mi esposa, mis dos hijos adolescentes y la beba"| 2      | 2        | 1       |
+| "vamos 2 adultos y un hijo de 2 años y otro de 1"                 | 2      | 1        | 1       |
+| "mi mujer, mi hija de 10, mi hijo de 7 y yo"                      | 2      | 2        | 0       |
 | "yo y mis dos hijos: uno de 15 y el otro de 10"                    | 2      | 1        | 0       |
-| "yo, mi pareja, su hijo de 4 y el mío de 6"                        | 2      | 2        | 0       |
-| "me voy con mi abuela y mi hija de 5"                              | 2      | 1        | 0       |
-| "viajamos dos mamás con tres chicos y un bebé"                     | 2      | 3        | 1       |
-| "yo, mi esposa y nuestra hija recién nacida"                       | 2      | 0        | 1       |
+| "yo, mi pareja, su hijo de 4 y el mío de 6"                       | 2      | 2        | 0       |
+| "me voy con mi abuela y mi hija de 5"                             | 2      | 1        | 0       |
+| "viajamos dos mamás con tres chicos y un bebé"                    | 2      | 3        | 1       |
+| "yo, mi esposa y nuestra hija recién nacida"                      | 2      | 0        | 1       |
 ----------------------------------------------------------------------------------------------------
-Ejemplo 1:  
-Mensaje: "me quiero ir con mi esposa y mis 2 hijos 7 noches en septiembre a cancun"  
-Respuesta:  
-{{  
-  "origenVuelta": "cancun",  
-  "adults": 2,  
-  "children": 2,  
-  "infants": 0  
+Ejemplo 1: 
+Mensaje: "me quiero ir con mi esposa y mis 2 hijos 7 noches en septiembre a cancun" 
+Respuesta: 
+{{ 
+  "origenVuelta": "cancun", 
+  "adults": 2, 
+  "children": 2, 
+  "infants": 0 
 }}
 
 Ejemplo 2:
@@ -466,17 +458,16 @@ MENSAJE DEL CLIENTE:
 
 """
 
-    res = openai.chat.completions.create(
+    res = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt2}],
             max_tokens=3000
         )
 
-
     content = res.choices[0].message.content
     try:
-       limpio = limpiar_json(content)
-       params = json.loads(limpio)
+        limpio = limpiar_json(content)
+        params = json.loads(limpio)
     except Exception as e:
         print("Error al parsear parámetros:", e)
         params = {}
@@ -486,7 +477,7 @@ MENSAJE DEL CLIENTE:
 def fusionar_resultados(fechas, parametros):
     resultado_semifinal = []
     if not fechas or not parametros:
-        return fechas  # retorno vacío si falló algo antes
+        return fechas # retorno vacío si falló algo antes
 
     # Si parametros no es lista, lo transformo a lista para evitar errores
     if not isinstance(parametros, list):
@@ -494,27 +485,33 @@ def fusionar_resultados(fechas, parametros):
 
     for fecha in fechas:
         for param in parametros:
-            combinado = param.copy()  # copio el dict para no modificar el original
+            combinado = param.copy() # copio el dict para no modificar el original
             combinado['departureDate'] = fecha['departureDate']
             combinado['returnDate'] = fecha['returnDate']
             resultado_semifinal.append(combinado)
 
     return resultado_semifinal
 
+# --- Funciones modificadas para usar la base de datos ---
+
+from fuzzywuzzy import fuzz, process  # si usas fuzzywuzzy para coincidencias
 
 def obtener_codigos_iata_lista(destinos):
     if not isinstance(destinos, list):
         print("Error: Se esperaba una lista de objetos destino.")
         return destinos
-
+    
     try:
-        with open("data/codigoIATA.json", "r", encoding="utf-8") as f:
-            destinos_data = json.load(f)
+        codigos_iata_db = read_json_from_bucket(IATA_FILE)
     except Exception as e:
-        print(f"Error cargando {f}: {e}")
+        print(f"⚠️ Error al leer códigos IATA del bucket: {e}")
+        return destinos  # Retorna sin modificar si falla
+    
+    if not codigos_iata_db:
+        print("⚠️ No se encontraron códigos IATA en el bucket.")
         return destinos
 
-    ciudades = [d["ciudad"].lower().strip() for d in destinos_data]
+    ciudades = [d["ciudad"].lower().strip() for d in codigos_iata_db]
 
     for destino_obj in destinos:
         if not isinstance(destino_obj, dict):
@@ -531,48 +528,55 @@ def obtener_codigos_iata_lista(destinos):
         )
 
         if mejor_coincidencia:
-            ciudad_match, score, _ = mejor_coincidencia
-            if score >= 70:
-                for d in destinos_data:
+            ciudad_match = mejor_coincidencia[0]
+            score = mejor_coincidencia[1]
+            if score >= 70:  # Umbral de confianza
+                for d in codigos_iata_db:
                     if d["ciudad"].lower().strip() == ciudad_match:
                         destino_obj["origenVuelta"] = d["codigoIATA"]
                         break
-            else:
-                print(f"No coincidencia confiable para '{destino_usuario}' (score={score})")
         else:
             print(f"No se encontró ninguna coincidencia para '{destino_usuario}'")
 
     return destinos
 
 
+
 def cargar_destinos():
-    with open("data/destinos.json", "r", encoding="utf-8") as f:
-        destinos = json.load(f)
-    # Devolvemos un diccionario con clave origenVuelta para buscar fácil después
-    return { destino["origenVuelta"]: destino for destino in destinos }
+    """
+    Carga destinos desde el bucket, devuelve diccionario indexado por origenVuelta
+    """
+    try:
+        destinos_list = read_json_from_bucket(DESTINOS_FILE)
+    except Exception as e:
+        print(f"⚠️ Error al leer destinos del bucket: {e}")
+        return {}
+
+    destinos = {}
+    for d in destinos_list:
+        key = d.get("origenVuelta")
+        if key:
+            destinos[key] = d
+    return destinos
+
 
 def completar_objetos_finales(lista_vuelos):
-    # Acá ya no va hardcodeado, lo cargamos dinámicamente
-    tabla_destinos = cargar_destinos()
+    tabla_destinos = cargar_destinos() # Ahora carga de la DB
 
     resultado_final = []
 
     for vuelo in lista_vuelos:
         origen = vuelo.get("origenVuelta", "")
 
-        datos_destino = tabla_destinos.get(origen, {
-            "maxDuracionIda": "",
-            "maxDuracionVuelta": "",
-            "horarioIdaEntre": "",
-            "horarioIdaHasta": "",
-            "horarioVueltaEntre": "",
-            "horarioVueltaHasta": "",
-            "stops": ""
+        # Obtener configuración específica para el origen o valores por defecto
+        config = tabla_destinos.get(origen, {
+            "maxDuracionIda": "", "maxDuracionVuelta": "",
+            "horarioIdaEntre": "", "horarioIdaHasta": "",
+            "horarioVueltaEntre": "", "horarioVueltaHasta": "",
+            "stops": "0" # Default a "0" o "Directo" si no se encuentra en la DB, para que coincida con VARCHAR
         })
 
         vuelo_completo = {
-            "mail": "franco@melincue.tur.ar",
-            "password": "Francomase12!",
             "origenIda": "BUE",
             "origenVuelta": origen,
             "departureDate": vuelo.get("departureDate", ""),
@@ -582,23 +586,22 @@ def completar_objetos_finales(lista_vuelos):
             "infants": vuelo.get("infants", 0),
             "currency": "USD",
             "checkedBaggage": False,
-            "maxDuracionIda": datos_destino.get("maxDuracionIda", ""),
-            "maxDuracionVuelta": datos_destino.get("maxDuracionVuelta", ""),
-            "horarioIdaEntre": datos_destino.get("horarioIdaEntre", ""),
-            "horarioIdaHasta": datos_destino.get("horarioIdaHasta", ""),
-            "horarioVueltaEntre": datos_destino.get("horarioVueltaEntre", ""),
-            "horarioVueltaHasta": datos_destino.get("horarioVueltaHasta", ""),
-            "stops": datos_destino.get("stops", "")
+            "maxDuracionIda": config.get("maxDuracionIda", ""),
+            "maxDuracionVuelta": config.get("maxDuracionVuelta", ""),
+            "horarioIdaEntre": config.get("horarioIdaEntre", ""),
+            "horarioIdaHasta": config.get("horarioIdaHasta", ""),
+            "horarioVueltaEntre": config.get("horarioVueltaEntre", ""),
+            "horarioVueltaHasta": config.get("horarioVueltaHasta", ""),
+            "stops": config.get("stops", "0") # Asegúrate de que el tipo coincida con lo que esperas (VARCHAR)
         }
 
         resultado_final.append(vuelo_completo)
 
     return resultado_final
 
-
 def limpiar_json(content):
     """
-    Limpia el contenido de Ollama para dejar solo el JSON puro.
+    Limpia el contenido para dejar solo el JSON puro.
     """
     # Si viene envuelto en ```json ... ```
     content = re.sub(r"```json", "", content, flags=re.IGNORECASE)
@@ -609,7 +612,14 @@ def limpiar_json(content):
     
     return content
 
-
+# --- Función principal de ejecución ---
+def generar_ambas_llamadas(mensaje):
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_fechas = executor.submit(generar_multi_busqueda, mensaje)
+        future_parametros = executor.submit(generar_todo_lo_demas, mensaje)
+        fechas = future_fechas.result()
+        parametros = future_parametros.result()
+    return fechas, parametros
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -617,8 +627,18 @@ if __name__ == "__main__":
         sys.exit(1)
 
     mensaje = sys.argv[1]
+    
+    # Paso 1: Generar fechas y parámetros en paralelo usando las LLMs
     fechas, parametros = generar_ambas_llamadas(mensaje)
-    resultado = fusionar_resultados(fechas, parametros)
-    destinoFinal =obtener_codigos_iata_lista(resultado)
-    resultadoFinal = completar_objetos_finales(destinoFinal)
-    print(json.dumps(resultadoFinal, indent=2, ensure_ascii=False))
+    
+    # Paso 2: Fusionar los resultados de fechas y parámetros
+    resultado_fusionado = fusionar_resultados(fechas, parametros)
+    
+    # Paso 3: Obtener códigos IATA de la base de datos para los destinos fusionados
+    destino_con_iata = obtener_codigos_iata_lista(resultado_fusionado)
+    
+    # Paso 4: Completar los objetos finales con la configuración de destinos de la base de datos
+    resultado_final_completo = completar_objetos_finales(destino_con_iata)
+    
+    # Paso 5: Imprimir el resultado final en formato JSON
+    print(json.dumps(resultado_final_completo, indent=2, ensure_ascii=False))

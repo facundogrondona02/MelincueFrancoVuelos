@@ -1,13 +1,18 @@
 import { spawn } from "child_process";
 
 export async function generarJsonDesdeMensaje(mensaje) {
+  console.log("Entro a genera Json ", mensaje)
   return new Promise((resolve, reject) => {
+    console.log("Tipo de mensaje para Python:", typeof mensaje, mensaje);
+    mensaje = mensaje.trim();
     const process = spawn("python3", ["./IA/IAVuelo.py", mensaje]);
     let result = "";
     process.stdout.on("data", (data) => {
       result += data.toString();
-    });
+          console.log("Viendo si viene toString")
 
+    });
+    console.log("Viendo si viene aca")
     process.stderr.on("data", (data) => {
       console.error("Error en Python:", data.toString());
     });

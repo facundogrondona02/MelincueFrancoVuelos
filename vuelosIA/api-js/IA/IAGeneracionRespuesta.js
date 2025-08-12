@@ -52,8 +52,13 @@ export async function generarRespuesta(dataResultados) { // Ajustar el tipo de '
       if (code === 0) {
         try {
           // Si el script de Python devuelve JSON, parsea el resultado
+          if( typeof result == JSON ){
           const json = JSON.parse(result); 
           resolve(json);
+
+          }else{
+            resolve(result)
+          }
         } catch (e) {
           // Si el script devuelve texto plano (como un mensaje para WhatsApp), devuélvelo tal cual
           console.warn("No se pudo parsear JSON del script de Python. Devolviendo texto plano.", e);

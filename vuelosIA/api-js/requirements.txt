@@ -1,4 +1,7 @@
 fuzzywuzzy
+rapidfuzz
 python-Levenshtein 
 openai
 langchain
+pymysql
+google-cloud-storage 
